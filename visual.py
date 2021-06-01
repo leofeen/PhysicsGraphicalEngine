@@ -1,6 +1,7 @@
+from opticallines import ReflectionLine
 from typing import Iterable
 from PIL import Image, ImageDraw
-from plane2d import Plane, Point
+from plane2d import Line, Plane, Point
 from light_beam import LightBeam
 
 class IByPointDraw:
@@ -25,10 +26,9 @@ class VisualPlane:
         width, height = self.plane.size()
         for x in range(width):
             for y in range(height-1, -1, -1):
-                image_draw.point((x, y), self.type_to_color[self.plane.get_point(Point(x, height - 1 -y))])
+                image_draw.point((x, y), self.type_to_color[self.plane.get_point(Point(x, height - 1 - y))])
         image.save(f'./imgs/image{self.image_counter}.png')
         self.image_counter += 1
-
 
     def bind_color_to_type(self, type_:int, color):
         if self.type_to_color.get(type_, None) == None:
@@ -45,8 +45,29 @@ class VisualPlane:
             self.plane.set_point(coordinates, type_)
 
 
+class VisualLine(IByPointDraw):
+    def __init__(self, line:Line, color:tuple, visual_plane:VisualPlane):
+        super().__init__()
+        self.line = line
+        self.color = color
+        self.type_ = VisualLine.type_
+        self.visual_plane = visual_plane
+        width, height = visual_plane.plane.size()
+        if line.angle != 90:
+            for x in range(width*100):
+                round_x = round(x/100)
+                round_y = round(line.get_y_coordinate(x/100))
+                if 0 <= round_y < height:
+                    self.draw_coordinates.add(Point(round_x, round_y))
+        else:
+            round_x = round(line.sample_coordinates.x)
+            for y in range(height):
+                self.draw_coordinates.add(Point(round_x, y))
+        self.visual_plane.bind_color_to_type(self.type_, self.color)
+
+
 class VisualLightBeam(IByPointDraw):
-    def __init__(self, light_beam:LightBeam, visual_plane:VisualPlane, color):
+    def __init__(self, light_beam:LightBeam, visual_plane:VisualPlane, color:tuple):
         super().__init__()
         self.beam = light_beam
         self.visual_plane = visual_plane
@@ -85,10 +106,26 @@ if __name__ == '__main__':
     plane = VisualPlane(1000)
     plane.create_image()
 
-    light_beam = LightBeam(Point(501, 507), 0)
-    light_beam.propogate_until(plane.plane.borders_as_list())
+    reflection_line = ReflectionLine(Point(500, 500), 1, -70)
+    plane.plane.append_object(reflection_line)
+    reflection_line2 = ReflectionLine(Point(750, 750), 1, 80)
+    plane.plane.append_object(reflection_line2) 
+
+    light_beam = LightBeam(Point(700, 700), -120)
+    while True:
+        object_hit = light_beam.propogate_until(plane.plane.borders_as_list() + plane.plane.objects_on_plane)
+        if isinstance(object_hit, ReflectionLine):
+            light_beam.reflect(object_hit)
+        else:
+            break
+    
     visual_beam = VisualLightBeam(light_beam, plane, (255, 0, 0))
     visual_beam.draw_source()
 
+    visual_line = VisualLine(reflection_line, (10, 255, 10), plane)
+    visual_line2 = VisualLine(reflection_line2, (10, 255, 10), plane)
+
+    plane.draw_object_by_point(visual_line)
+    plane.draw_object_by_point(visual_line2)
     plane.draw_object_by_point(visual_beam)
     plane.create_image()

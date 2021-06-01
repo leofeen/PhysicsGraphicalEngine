@@ -40,7 +40,7 @@ class Line:
             self.oy_segment = None
 
     def get_y_coordinate(self, x):
-        if self.oy_segment != math.inf:
+        if self.angle_coefficient != math.inf:
             return self.angle_coefficient*x + self.oy_segment
         else:
             return x if x == self.sample_coordinates.x else None
@@ -55,9 +55,13 @@ class Line:
         line_y = self.get_y_coordinate(point.x)
         if line_y == point.y:
             return 's'
-        if line_y < point.y:
+        if line_y < point.y and self.angle >= 0:
             return 'lou' #left-or-up
-        return 'rod' #right-or-down
+        elif line_y > point.y and self.angle >= 0:
+            return 'rod' #right-or-down
+        elif line_y < point.y:
+            return 'rou' #right-or-up
+        return 'lod' #left-or-down
 
     @staticmethod
     def angle_between(first_line, second_line):
@@ -121,6 +125,7 @@ class Plane:
             'top': Line(Point(self.width, self.height), 0),
             'right': Line(Point(self.width, self.height), 90),
         }
+        self.objects_on_plane = []
 
     def size(self):
         return (self.width, self.height)
@@ -128,12 +133,15 @@ class Plane:
     def get_point(self, coordinates:Point):
         if coordinates.x >= self.width or coordinates.y >= self.height or coordinates.x < 0 or coordinates.y < 0:
             return None
-        return self._plane[coordinates.x][coordinates.y]
+        return self._plane[coordinates.y][coordinates.x]
 
     def set_point(self, coordinates:Point, value:int):
         if coordinates.x >= self.width or coordinates.y >= self.height or coordinates.x < 0 or coordinates.y < 0:
             return None
-        self._plane[coordinates.x][coordinates.y] = value
+        self._plane[coordinates.y][coordinates.x] = value
 
     def borders_as_list(self):
         return [self.borders[key] for key in self.borders]
+
+    def append_object(self, object_to_append):
+        self.objects_on_plane.append(object_to_append)
