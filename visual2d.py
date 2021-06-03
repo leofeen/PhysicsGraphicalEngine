@@ -39,6 +39,7 @@ class IByPointDraw:
 
 class VisualPlane:
     def __init__(self, width=None, height=None, *, plane: Plane=None, path_to_image_folder=None, background_color=Color.BLACK):
+        #TODO: intersects_with - stop drawing after collision
         if plane == None:
             self.plane = Plane(width, height)
         else:

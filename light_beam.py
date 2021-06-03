@@ -1,9 +1,9 @@
 from math import sin, cos, radians, asin, degrees
 from plane2d import Line, Point
-from opticallines import ReflectionLine
+from opticallines import ReflectionLine, RefractionLine
 
 class LightBeam:
-    def __init__(self, start_coordinates: Point, angle: float, initial_refraction_coefficient: float=1, *, max_bounces: int=100):
+    def __init__(self, start_coordinates: Point, angle: float, *, initial_refraction_coefficient: float=1, max_bounces: int=100):
         """Angle in degrees"""
         self.angle = angle
         while self.angle <= -180 or self.angle > 180:
@@ -78,15 +78,44 @@ class LightBeam:
         self.relative_intensity *= reflection_line.reflection_coefficient
         self.propogate()
 
-    def refract(self, new_refraction_coefficient: float):
+    def refract(self, refraction_line: RefractionLine):
         if self._number_of_bounces > self.max_number_of_bounces: return
         
-        """new_angle = degrees(asin(self.refracion_coefficient * sin(radians(self.angle)) / new_refraction_coefficient))
-        if new_angle <= 90:
-            self.angle = angle
-            self.refracion_coefficient = new_refraction_coefficient
+        direction = refraction_line.get_direction_to_point(self.coordinates[-2])
+        new_refraction_coefficient = refraction_line.get_new_refraction_coefficient(direction)
+        normal_line = Line.perpendicular_line(refraction_line, self.coordinates[-1])
+        falling_angle = Line.angle_between(normal_line, Line(self.coordinates[-1], self.angle))
+        refraction_angle_sine = (sin(radians(falling_angle)) * self.refracion_coefficient) / new_refraction_coefficient
+
+        if refraction_angle_sine > 1:
+            self.reflect(refraction_line)
         else:
-            self.reflect()"""
+            refraction_angle = degrees(asin(refraction_angle_sine))
+            self.refracion_coefficient = new_refraction_coefficient
+            reversed_angle = 180 + self.angle
+            while not (-180 < reversed_angle <= 180):
+                if reversed_angle > 180:
+                    reversed_angle -= 360
+                else:
+                    reversed_angle += 360
+
+            if direction == 'lou' or direction == 'rou':
+                if refraction_line.angle < reversed_angle <= refraction_line.angle+90:
+                    new_angle = self.angle + (falling_angle - refraction_angle)
+                else:
+                    new_angle = self.angle - (falling_angle - refraction_angle)
+            else:
+                if refraction_line.angle-90 < reversed_angle <= refraction_line.angle:
+                    new_angle = self.angle + (falling_angle - refraction_angle)
+                else:
+                    new_angle = self.angle - (falling_angle - refraction_angle)
+            while not (-180 < new_angle <= 180):
+                if new_angle > 180:
+                    new_angle -= 360
+                else:
+                    new_angle += 360
+            self.angle = new_angle
+            self.propogate()
 
 
 if __name__ == "__main__":

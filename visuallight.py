@@ -1,7 +1,7 @@
 from visual2d import Color, IByPointDraw, VisualPlane, VisualLine, VisualPoint
 from light_beam import LightBeam
 from plane2d import Point, Line
-from opticallines import ReflectionLine
+from opticallines import ReflectionLine, RefractionLine
 
 
 class VisualLightBeam(IByPointDraw):
@@ -50,12 +50,13 @@ class VisualLightBeam(IByPointDraw):
     def fully_propogate(self):
         while True:
             object_hit = self.beam.propogate_until(self.visual_plane.plane.borders_as_list() + self.visual_plane.plane.objects_on_plane)
-            if isinstance(object_hit, ReflectionLine):
+            self.update_draw_coordinates()
+            if isinstance(object_hit, RefractionLine):
+                self.beam.refract(object_hit)
+            elif isinstance(object_hit, ReflectionLine):
                 self.beam.reflect(object_hit)
                 self.update_intensity()
-                self.update_draw_coordinates()
             else:
-                self.update_draw_coordinates()
                 break
 
 
