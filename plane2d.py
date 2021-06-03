@@ -11,9 +11,20 @@ class Point:
     def __str__(self):
         return f'({self.x}; {self.y})'
 
+    def __eq__(self, o) -> bool:
+        if not isinstance(o, Point):
+            return False
+        return (self.x == o.x) and (self.y == o.y)
+
+    def __hash__(self) -> int:
+        return hash(self.__repr__())
+
+    def __repr__(self) -> str:
+        return f'Point({self.x}, {self.y})'
+
 
 class Line:
-    def __init__(self, sample_coordinates:Point, angle=None, angle_coefficient=None):
+    def __init__(self, sample_coordinates: Point, angle=None, angle_coefficient=None):
         """Angle in degrees"""
         if angle == None and angle_coefficient == None:
             raise ValueError('Neither angle or coefficient was not given')
@@ -32,7 +43,10 @@ class Line:
                 self.angle = 90
         else:
             self.angle_coefficient = angle_coefficient
-            self.angle = degrees(atan(angle_coefficient))
+            if self.angle_coefficient != math.inf:
+                self.angle = degrees(atan(angle_coefficient))
+            else:
+                self.angle = 90
         self.sample_coordinates = sample_coordinates
         if self.angle_coefficient != math.inf:
             self.oy_segment = sample_coordinates.y - self.angle_coefficient*sample_coordinates.x
@@ -45,7 +59,7 @@ class Line:
         else:
             return x if x == self.sample_coordinates.x else None
 
-    def get_direction_to_point(self, point:Point):
+    def get_direction_to_point(self, point: Point):
         if self.angle == 90:
             if point.x == self.sample_coordinates.x:
                 return 's'
@@ -98,7 +112,14 @@ class Line:
             return Point(x, second_line.get_y_coordinate(x))
         x = second_line.sample_coordinates.x
         return Point(x, first_line.get_y_coordinate(x))
-            
+
+    @staticmethod
+    def construct_by_two_points(first_point: Point, second_point: Point):
+        if first_point.x != second_point.x:
+            angle_coefficient = (second_point.y - first_point.y) / (second_point.x - first_point.x)
+        else:
+            angle_coefficient = math.inf
+        return Line(first_point, angle_coefficient=angle_coefficient)
 
 
 class Plane:

@@ -7,7 +7,9 @@ class ReflectionLine(Line):
         super().__init__(sample_coordinates, angle=angle, angle_coefficient=angle_coefficient)
         self.reflection_coefficient = reflection_coefficient
 
-class RefractorLine(Line):
+
+#TODO: RefractorLine(ReflectionLine)
+"""class RefractorLine(Line):
     def __init__(self, sample_coordinate:Point, left_coefficient, right_coefficient, angle=None, angle_coefficient=None):
         super().__init__(sample_coordinate, angle, angle_coefficient)
         self.left_coefficient = left_coefficient
@@ -24,4 +26,4 @@ class RefractorLine(Line):
         else:
             if (light_beam.angle > line_angle) and (light_beam.angle < 180 + line_angle):
                 return 'ltr' #left-to-right
-        return 'rtl' #right-to-left
+        return 'rtl' #right-to-left"""
