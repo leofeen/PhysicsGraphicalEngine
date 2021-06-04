@@ -16,7 +16,7 @@ class Color:
     LIGHT_BLUE = (0, 255, 255)
     WHITE = (255, 255, 255)
     LIGHT_GREEN = (0, 255, 90)
-    PURPLE = (90, 0, 255)
+    PURPLE = (128, 0, 128)
     BLACK = (0, 0, 0)
 
     @staticmethod
@@ -49,7 +49,6 @@ class VisualPlane:
         else:
             self.plane = plane
         self.image_counter = 0
-        self.color = (0, 0, 0, 255)
         self.type_to_object = {0: self}
         if path_to_image_folder == None:
             self.path_to_image_folder = './imgs'
@@ -83,6 +82,11 @@ class VisualPlane:
 
     def get_color_on_point(self, point: Point):
         return self.background_color
+
+    def reset_plane(self):
+        self.type_to_object = {0: self}
+        width, height = self.plane.size()
+        self.plane = Plane(width, height)
 
 class VisualLine(IByPointDraw):
     def __init__(self, line: Line, visual_plane: VisualPlane, color: tuple):
@@ -128,9 +132,18 @@ class VisualLineSegment(IByPointDraw):
         self.type_ = IByPointDraw.type_
 
         width, height = self.visual_plane.plane.size()
-        for x in range(round(self.line_segment.endpoints[0].x)*100, round(self.line_segment.endpoints[1].x)*100):
-            round_x = round(x/100)
-            round_y = round(self.line_segment.reconstruct_line().get_y_coordinate(x/100))
-            if 0 <= round_y < height and 0 <= round_x < width:
-                    if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
-                        self.draw_coordinates[Point(round_x, round_y)] = self.color
+        if self.line_segment.endpoints[0].x != self.line_segment.endpoints[1].x:
+            for x in range(round(self.line_segment.endpoints[0].x)*100, round(self.line_segment.endpoints[1].x)*100):
+                round_x = round(x/100)
+                round_y = round(self.line_segment.reconstruct_line().get_y_coordinate(x/100))
+                if 0 <= round_y < height and 0 <= round_x < width:
+                        if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
+                            self.draw_coordinates[Point(round_x, round_y)] = self.color
+        else:
+            round_x = round(self.line_segment.endpoints[0].x)
+            min_y = min(round(self.line_segment.endpoints[0].y), round(self.line_segment.endpoints[1].y))
+            max_y = max(round(self.line_segment.endpoints[0].y), round(self.line_segment.endpoints[1].y))
+            for y in range(min_y, max_y+1):
+                if 0 <= y < height and 0 <= round_x < width:
+                        if self.draw_coordinates.get(Point(round_x, y), None) == None:
+                            self.draw_coordinates[Point(round_x, y)] = self.color

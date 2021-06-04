@@ -7,7 +7,7 @@ from opticallines import ReflectionLine, ReflectionSegment, RefractionLine, Refr
 
 
 class VisualLightBeam(IByPointDraw):
-    def __init__(self, light_beam: LightBeam, visual_plane: VisualPlane, color: tuple):
+    def __init__(self, light_beam: LightBeam, visual_plane: VisualPlane, color: tuple, diffusion_treshold: int = 5):
         super().__init__()
         self.beam = light_beam
         self.visual_plane = visual_plane
@@ -15,6 +15,7 @@ class VisualLightBeam(IByPointDraw):
         self.original_color = color
         self.type_ = VisualLightBeam.type_
         self.visual_plane.bind_object(self)
+        self.diffusion_treshold = diffusion_treshold
 
     def draw_source(self):
         source_center = Point(round(self.beam.coordinates[0].x), round(self.beam.coordinates[0].y))
@@ -51,6 +52,8 @@ class VisualLightBeam(IByPointDraw):
 
     def fully_propogate(self):
         while True:
+            if not self.check_diffusion(): break
+            
             object_hit = self.beam.propogate_until(self.visual_plane.plane.borders_as_list() + self.visual_plane.plane.objects_on_plane)
             self.update_draw_coordinates()
             if isinstance(object_hit, RefractionLine):
@@ -61,6 +64,15 @@ class VisualLightBeam(IByPointDraw):
             else:
                 break
 
+    def check_diffusion(self):
+        background_color = self.visual_plane.background_color
+        red_delta = math.fabs(background_color[0] - self.color[0])
+        green_delta = math.fabs(background_color[1] - self.color[1])
+        blue_delta = math.fabs(background_color[2] - self.color[2])
+        if red_delta <= self.diffusion_treshold and green_delta <= self.diffusion_treshold and blue_delta <= self.diffusion_treshold:
+            return False
+        return True
+
 
 class LightBeamSceneManager:
     def __init__(self, visual_plane: VisualPlane, *, beams: list[tuple[LightBeam, tuple, bool]],
@@ -68,6 +80,36 @@ class LightBeamSceneManager:
                  line_segments: list[tuple[LineSegment, tuple]]=None, refraction_coefficients_management: bool=True) -> None:
         self.visual_plane: VisualPlane = visual_plane
 
+        self._resolve(beams=beams, line_segments=line_segments, lines=lines,
+                      refraction_coefficients_management=refraction_coefficients_management, points=points)
+            
+    def draw_picture(self):
+        print('Started processing the scene')
+        for visual_beam in self.visual_beams:
+            visual_beam.fully_propogate()
+        for visual_line in self.visual_lines:
+            self.visual_plane.draw_object_by_point(visual_line)
+        for visual_line_segment in self.visual_line_segments:
+            self.visual_plane.draw_object_by_point(visual_line_segment)
+        for visual_point in self.visual_points:
+            self.visual_plane.draw_object_by_point(visual_point)
+        for visual_beam in self.visual_beams:
+            self.visual_plane.draw_object_by_point(visual_beam)
+        self.visual_plane.create_image()
+        print('Image created')
+
+    def get_closest_refraction_line(self, point: Point):
+        closest = None
+        min_distance = math.inf
+        for obj in self.refraction_lines:
+            distance = obj.get_distance_from_a_point(point)
+            if distance < min_distance:
+                closest = obj
+        return closest
+
+    def _resolve(self, *, beams: list[tuple[LightBeam, tuple, bool]],
+                 points: list[tuple[Point, tuple]]=None, lines: list[tuple[Line, tuple]]=None,
+                 line_segments: list[tuple[LineSegment, tuple]]=None, refraction_coefficients_management: bool=True):
         self.points: list[Point] = []
         self.lines: list[Line] = []
         self.refraction_lines: list[RefractionLine] = []
@@ -107,38 +149,24 @@ class LightBeamSceneManager:
         for beam, color, draw_source in beams:
             #TODO: support polygons, when they are implemented
             if refraction_coefficients_management and len(self.refraction_lines) > 0:
-                beam_origin = beam.coordinates[0]
-                closest_refractor_line = self.get_closest_refraction_line(beam_origin)
-                direction = closest_refractor_line.get_direction_to_point(beam_origin)
+                closest_refractor_line = self.get_closest_refraction_line(beam.origin)
+                direction = closest_refractor_line.get_direction_to_point(beam.origin)
                 refraction_coefficient = closest_refractor_line.get_current_refraction_coefficient(direction)
                 beam.refracion_coefficient = refraction_coefficient
+            beam.coordinates = [beam.origin]
+            beam.angle = beam.initial_angle
+            beam.relative_intensity = 1
             self.beams.append(beam)
             if color != Color.NONE:
                 visual_beam = VisualLightBeam(beam, self.visual_plane, color)
                 if draw_source:
                     visual_beam.draw_source()
                 self.visual_beams.append(visual_beam)
-            
-    def draw_picture(self):
-        print('Started processing the scene')
-        for visual_beam in self.visual_beams:
-            visual_beam.fully_propogate()
-        for visual_line in self.visual_lines:
-            self.visual_plane.draw_object_by_point(visual_line)
-        for visual_line_segment in self.visual_line_segments:
-            self.visual_plane.draw_object_by_point(visual_line_segment)
-        for visual_point in self.visual_points:
-            self.visual_plane.draw_object_by_point(visual_point)
-        for visual_beam in self.visual_beams:
-            self.visual_plane.draw_object_by_point(visual_beam)
-        self.visual_plane.create_image()
-        print('Image created')
 
-    def get_closest_refraction_line(self, point: Point):
-        closest = None
-        min_distance = math.inf
-        for obj in self.refraction_lines:
-            distance = obj.get_distance_from_a_point(point)
-            if distance < min_distance:
-                closest = obj
-        return closest
+    def regroup_scene(self, *, beams: list[tuple[LightBeam, tuple, bool]],
+                 points: list[tuple[Point, tuple]]=None, lines: list[tuple[Line, tuple]]=None,
+                 line_segments: list[tuple[LineSegment, tuple]]=None, refraction_coefficients_management: bool=True) -> None:
+        self.visual_plane.reset_plane()
+
+        self._resolve(beams=beams, line_segments=line_segments, lines=lines,
+                      refraction_coefficients_management=refraction_coefficients_management, points=points)

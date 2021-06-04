@@ -142,7 +142,10 @@ class Line:
 class LineSegment:
     def __init__(self, first_point: Point, second_point: Point):
         self.related_line = Line.construct_by_two_points(first_point, second_point)
-        self.endpoints = [first_point, second_point]
+        if first_point.x <= second_point.x:
+            self.endpoints = [first_point, second_point]
+        else:
+            self.endpoints = [second_point, first_point]
 
     def reconstruct_line(self):
         return self.related_line

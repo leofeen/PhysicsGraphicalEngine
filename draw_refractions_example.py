@@ -16,9 +16,8 @@ LINES = [
 
 BEAMS = [
     (LightBeam(Point(700, 700), -120), Color.RED, True),
-    (LightBeam(Point(300, 300), 85), Color.PURPLE, True),
+    (LightBeam(Point(300, 300), 85), Color.BLUE, True),
 ]
 
 scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, line_segments=LINE_SEGMENTS)
-
 scene.draw_picture()

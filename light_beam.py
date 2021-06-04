@@ -17,6 +17,8 @@ class LightBeam:
         self._number_of_bounces = 0
         self.max_number_of_bounces = max_bounces
         self.relative_intensity = 1
+        self.origin = start_coordinates
+        self.initial_angle = angle
 
     def propogate(self, distance: float=1):
         if self._number_of_bounces > self.max_number_of_bounces: return
