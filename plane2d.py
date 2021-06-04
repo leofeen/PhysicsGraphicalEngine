@@ -1,6 +1,7 @@
 import math
+from typing import Union
 import numpy as np
-from math import radians, degrees, tan, atan, fabs
+from math import radians, degrees, sqrt, tan, atan, fabs
 
 
 class Point:
@@ -24,7 +25,8 @@ class Point:
 
 
 class Line:
-    def __init__(self, sample_coordinates: Point, angle=None, angle_coefficient=None):
+    def __init__(self, sample_coordinates: Point, angle: float=None, angle_coefficient: float=None):
+        #TODO: make static work with line segments
         """Angle in degrees"""
         if angle == None and angle_coefficient == None:
             raise ValueError('Neither angle or coefficient was not given')
@@ -77,6 +79,17 @@ class Line:
             return 'rou' #right-or-up
         return 'lod' #left-or-down
 
+    def get_distance_from_a_point(self, point: Point):
+        if self.angle_coefficient != math.inf:
+            return fabs(self.angle_coefficient*point.x - point.y + self.oy_segment) / sqrt(self.angle_coefficient**2 + 1)
+        return fabs(point.x - self.sample_coordinates.x)
+
+    def get_intersection_point(self, line: Union['Line', 'LineSegment']):
+        return Line.get_intersection_point(line, self)
+
+    def __repr__(self) -> str:
+        return f'Line({self.sample_coordinates}, {self.angle})'
+
     @staticmethod
     def angle_between(first_line, second_line):
         a1 = first_line.angle
@@ -101,7 +114,11 @@ class Line:
         return Line(coordinates, 90)
 
     @staticmethod
-    def get_intersection_point(first_line, second_line):
+    def get_intersection_point(first_line: Union['Line', 'LineSegment'], second_line: Union['Line', 'LineSegment']):
+        if isinstance(first_line, LineSegment):
+            first_line = first_line.reconstruct_line()
+        if isinstance(second_line, LineSegment):
+            second_line = second_line.reconstruct_line()
         if first_line.angle_coefficient == second_line.angle_coefficient:
             return None
         if first_line.oy_segment != None and second_line.oy_segment != None:
@@ -120,6 +137,34 @@ class Line:
         else:
             angle_coefficient = math.inf
         return Line(first_point, angle_coefficient=angle_coefficient)
+
+
+class LineSegment:
+    def __init__(self, first_point: Point, second_point: Point):
+        self.related_line = Line.construct_by_two_points(first_point, second_point)
+        self.endpoints = [first_point, second_point]
+
+    def reconstruct_line(self):
+        return self.related_line
+
+    def check_intersection(self, line: Line):
+        possible_intersection_point = Line.get_intersection_point(self.related_line, line)
+        if (min(self.endpoints[0].x, self.endpoints[1].x) <= possible_intersection_point.x <= max(self.endpoints[0].x, self.endpoints[1].x)
+            and min(self.endpoints[0].y, self.endpoints[1].y) <= possible_intersection_point.y <= max(self.endpoints[0].y, self.endpoints[1].y)):
+            return True
+        return False
+    
+    def get_intersection_point(self, line: Union[Line, 'LineSegment']):
+        return Line.get_intersection_point(line, self)
+
+    def get_intersection(self, line: Union[Line, 'LineSegment']):
+        if isinstance(line, Line):
+            is_intersect = self.check_intersection(line)
+        elif isinstance(line, LineSegment):
+            is_intersect = self.check_intersection(line.reconstruct_line()) & line.check_intersection(self.reconstruct_line())
+        intersection_point = self.get_intersection_point(line)
+        return (is_intersect, intersection_point, self.reconstruct_line())
+        
 
 
 class Plane:
@@ -166,3 +211,12 @@ class Plane:
 
     def append_object(self, object_to_append):
         self.objects_on_plane.append(object_to_append)
+
+    def get_closest_object(self, point: Point):
+        closest = None
+        min_distance = math.inf
+        for obj in self.objects_on_plane:
+            distance = obj.get_distance_from_a_point(point)
+            if distance < min_distance:
+                closest = obj
+        return closest

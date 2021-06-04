@@ -1,22 +1,24 @@
 from visual2d import VisualPlane, Color
 from plane2d import Point
-from opticallines import RefractionLine
+from opticallines import RefractionLine, ReflectionSegment
 from light_beam import LightBeam
 from visuallight import LightBeamSceneManager
 
 plane = VisualPlane(1000, path_to_image_folder='./refractions')
 
-POINTS = []
+LINE_SEGMENTS = [
+    (ReflectionSegment(Point(410, 290), Point(520, 120), 0.3), Color.MAGENTA),
+]
 
 LINES = [
     (RefractionLine(Point(500, 500), 1, 1.6, -50), Color.GREEN),
 ]
 
 BEAMS = [
-    (LightBeam(Point(700, 700), -120, initial_refraction_coefficient=1.6), Color.RED, True),
+    (LightBeam(Point(700, 700), -120), Color.RED, True),
     (LightBeam(Point(300, 300), 85), Color.PURPLE, True),
 ]
 
-scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
+scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, line_segments=LINE_SEGMENTS)
 
 scene.draw_picture()

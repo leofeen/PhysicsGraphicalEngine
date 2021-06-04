@@ -1,5 +1,6 @@
 from math import sin, cos, radians, asin, degrees
-from plane2d import Line, Point
+from typing import Union
+from plane2d import Line, LineSegment, Point
 from opticallines import ReflectionLine, RefractionLine
 
 class LightBeam:
@@ -17,34 +18,46 @@ class LightBeam:
         self.max_number_of_bounces = max_bounces
         self.relative_intensity = 1
 
-    def propogate(self):
+    def propogate(self, distance: float=1):
         if self._number_of_bounces > self.max_number_of_bounces: return
 
         previous_x, previous_y = self.coordinates[-1].x, self.coordinates[-1].y
-        x = previous_x + cos(radians(self.angle))
-        y = previous_y + sin(radians(self.angle))
+        x = previous_x + (cos(radians(self.angle)) * distance)
+        y = previous_y + (sin(radians(self.angle)) * distance)
         self.coordinates.append(Point(x, y))
         return Point(x, y)
 
-    def propogate_until(self, lines: list[Line]):
+    def propogate_until(self, lines: list[Union[LineSegment, Line]]):
         if self._number_of_bounces > self.max_number_of_bounces: return
 
         starting_directions = []
         for i, line in enumerate(lines):
-            starting_directions.append(line.get_direction_to_point(self.coordinates[-1]))
+            if isinstance(line, Line):
+                starting_directions.append(line.get_direction_to_point(self.coordinates[-1]))
+            elif isinstance(line, LineSegment):
+                starting_directions.append(line.reconstruct_line().get_direction_to_point(self.coordinates[-1]))
             if starting_directions[i] == 's':
                 return None
         while True:
             #TODO: optimize by propogating at steps == distance to nearest object (or similar, like check in 100 radius) 
             new_point = self.propogate()
             for i, line in enumerate(lines):
-                if line.get_direction_to_point(new_point) != starting_directions[i]:
-                    self.coordinates.pop()
-                    movement_line = Line(self.coordinates[-1], self.angle)
-                    intersection_point = Line.get_intersection_point(line, movement_line)
-                    if intersection_point != None:
-                        self.coordinates.append(intersection_point)
-                    return line
+                if isinstance(line, Line):
+                    if line.get_direction_to_point(new_point) != starting_directions[i]:
+                        self.coordinates.pop()
+                        movement_line = Line(self.coordinates[-1], self.angle)
+                        intersection_point = Line.get_intersection_point(line, movement_line)
+                        if intersection_point != None:
+                            self.coordinates.append(intersection_point)
+                        return line
+                elif isinstance(line, LineSegment):
+                    if line.reconstruct_line().get_direction_to_point(new_point) != starting_directions[i]:
+                        movement_line = Line(self.coordinates[-2], self.angle)
+                        is_intersect, intersection_point, related_line_hit = line.get_intersection(movement_line)
+                        if is_intersect:
+                            self.coordinates.pop()
+                            self.coordinates.append(intersection_point)
+                            return related_line_hit
 
     def reflect(self, reflection_line: ReflectionLine):
         if self._number_of_bounces > self.max_number_of_bounces: return
@@ -76,7 +89,7 @@ class LightBeam:
         self.angle = new_angle
         self._number_of_bounces += 1
         self.relative_intensity *= reflection_line.reflection_coefficient
-        self.propogate()
+        self.propogate(0.01)
 
     def refract(self, refraction_line: RefractionLine):
         if self._number_of_bounces > self.max_number_of_bounces: return
@@ -115,7 +128,7 @@ class LightBeam:
                 else:
                     new_angle += 360
             self.angle = new_angle
-            self.propogate()
+            self.propogate(0.01)
 
 
 if __name__ == "__main__":

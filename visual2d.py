@@ -1,9 +1,11 @@
 from typing import Iterable
 from PIL import Image, ImageDraw
-from plane2d import Line, Plane, Point
+from plane2d import Line, LineSegment, Plane, Point
 
 
 class Color:
+    #NONE color used for invinsible objects
+    NONE = (None, None, None) 
     #TODO: add more colors
     RED = (255, 0, 0)
     BLUE = (0, 0, 255)
@@ -25,13 +27,16 @@ class Color:
         return (round(new_red), round(new_green), round(new_blue))
 
 
+#Every class, that wraps object to be drawed on scene, should inheret form IByPointDraw, providing
+#realization for filling self.draw_coordinates dict in form of 'Point(x, y): color,'
+#and storing IByPointDraw.type_ in self.type_
 class IByPointDraw:
     type_ = 0
     def __init__(self):
         IByPointDraw.type_ += 1
         self.type = IByPointDraw.type_
         self.draw_coordinates = {}
-        self.color = (0, 0, 0, 0)
+        self.color = (0, 0, 0)
 
     def get_color_on_point(self, coordinates: Point):
         return self.draw_coordinates.get(Point(coordinates[0], coordinates[1]), self.color)
@@ -39,7 +44,6 @@ class IByPointDraw:
 
 class VisualPlane:
     def __init__(self, width=None, height=None, *, plane: Plane=None, path_to_image_folder=None, background_color=Color.BLACK):
-        #TODO: intersects_with - stop drawing after collision
         if plane == None:
             self.plane = Plane(width, height)
         else:
@@ -112,3 +116,21 @@ class VisualPoint(IByPointDraw):
         self.draw_coordinates[Point(round(point.x), round(point.y))] = self.color
         self.type_ = IByPointDraw.type_
         self.visual_plane.bind_object(self)
+
+
+class VisualLineSegment(IByPointDraw):
+    def __init__(self, line_segment: LineSegment, visual_plane: VisualPlane, color: tuple):
+        super().__init__()
+        self.line_segment = line_segment
+        self.color = color
+        self.visual_plane = visual_plane
+        self.visual_plane.bind_object(self)
+        self.type_ = IByPointDraw.type_
+
+        width, height = self.visual_plane.plane.size()
+        for x in range(round(self.line_segment.endpoints[0].x)*100, round(self.line_segment.endpoints[1].x)*100):
+            round_x = round(x/100)
+            round_y = round(self.line_segment.reconstruct_line().get_y_coordinate(x/100))
+            if 0 <= round_y < height and 0 <= round_x < width:
+                    if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
+                        self.draw_coordinates[Point(round_x, round_y)] = self.color
