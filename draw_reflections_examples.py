@@ -40,7 +40,7 @@ BEAMS = [
 ]
 
 scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
-scene.draw_picture()
+scene.draw_picture('Simple reflections example')
 
 scene.regroup_scene(line_segments=LINE_SEGMENTS, beams=BEAMS)
-scene.draw_picture()
+scene.draw_picture('Black body model')

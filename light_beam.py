@@ -1,10 +1,12 @@
 from math import sin, cos, radians, asin, degrees
 from typing import Union
+
 from plane2d import Line, LineSegment, Point
 from opticallines import ReflectionLine, RefractionLine
 
 class LightBeam:
-    def __init__(self, start_coordinates: Point, angle: float, *, initial_refraction_coefficient: float=1, max_bounces: int=100):
+    def __init__(self, start_coordinates: Point, angle: float,
+                 *,initial_refraction_coefficient: float = 1, max_bounces: int = 100):
         """Angle in degrees"""
         self.angle = angle
         while self.angle <= -180 or self.angle > 180:
@@ -20,7 +22,7 @@ class LightBeam:
         self.origin = start_coordinates
         self.initial_angle = angle
 
-    def propogate(self, distance: float=1):
+    def propogate(self, distance: float = 1):
         if self._number_of_bounces > self.max_number_of_bounces: return
 
         previous_x, previous_y = self.coordinates[-1].x, self.coordinates[-1].y
@@ -131,9 +133,3 @@ class LightBeam:
                     new_angle += 360
             self.angle = new_angle
             self.propogate(0.01)
-
-
-if __name__ == "__main__":
-    lb = LightBeam(Point(1, 1), 45)
-    for _ in range(10):
-        print(lb.propogate())

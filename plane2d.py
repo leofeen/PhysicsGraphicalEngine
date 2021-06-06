@@ -1,21 +1,21 @@
 import math
-from typing import Union
+from typing import Any, Union
 import numpy as np
 from math import radians, degrees, sqrt, tan, atan, fabs
 
 
 class Point:
-    def __init__(self, x, y) -> None:
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
 
     def __str__(self):
         return f'({self.x}; {self.y})'
 
-    def __eq__(self, o) -> bool:
-        if not isinstance(o, Point):
+    def __eq__(self, other: Union[Any, 'Point']) -> bool:
+        if not isinstance(other, Point):
             return False
-        return (self.x == o.x) and (self.y == o.y)
+        return (self.x == other.x) and (self.y == other.y)
 
     def __hash__(self) -> int:
         return hash(self.__repr__())
@@ -25,8 +25,7 @@ class Point:
 
 
 class Line:
-    def __init__(self, sample_coordinates: Point, angle: float=None, angle_coefficient: float=None):
-        #TODO: make static work with line segments
+    def __init__(self, sample_coordinates: Point, angle: float = None, angle_coefficient: float = None):
         """Angle in degrees"""
         if angle == None and angle_coefficient == None:
             raise ValueError('Neither angle or coefficient was not given')
@@ -55,7 +54,7 @@ class Line:
         else:
             self.oy_segment = None
 
-    def get_y_coordinate(self, x):
+    def get_y_coordinate(self, x: float):
         if self.angle_coefficient != math.inf:
             return self.angle_coefficient*x + self.oy_segment
         else:
@@ -91,9 +90,17 @@ class Line:
         return f'Line({self.sample_coordinates}, {self.angle})'
 
     @staticmethod
-    def angle_between(first_line, second_line):
-        a1 = first_line.angle
-        a2 = second_line.angle
+    def angle_between(first_line: Union['Line', 'LineSegment'], second_line: Union['Line', 'LineSegment']):
+        if isinstance(first_line, Line):
+            a1 = first_line.angle
+        elif isinstance(first_line, LineSegment):
+            a1 = first_line.reconstruct_line().angle
+
+        if isinstance(second_line, Line):
+            a2 = second_line.angle
+        elif isinstance(second_line, LineSegment):
+            a2 = second_line.reconstruct_line().angle
+
         if a1 == a2:
             return 0
         if (a1 > 0 and a2 > 0) or (a1 < 0 and a2 > 0):
@@ -103,11 +110,15 @@ class Line:
         return angle if angle <= 90 else 180 - angle
         
     @staticmethod
-    def perpendicular_line(line, point_from=None):
+    def perpendicular_line(line: Union['Line', 'LineSegment'], point_from: Point = None):
         if point_from == None:
             coordinates = line.sample_coordinates
         else:
             coordinates = point_from
+        
+        if isinstance(line, LineSegment):
+            line = line.reconstruct_line()
+
         if line.angle_coefficient != 0:
             k = -1 / line.angle_coefficient
             return Line(coordinates, angle_coefficient=k)
@@ -150,7 +161,9 @@ class LineSegment:
     def reconstruct_line(self):
         return self.related_line
 
-    def check_intersection(self, line: Line):
+    def check_intersection(self, line: Union[Line, 'LineSegment']):
+        if isinstance(line, LineSegment):
+            return self.check_intersection(line.reconstruct_line()) and line.check_intersection(self.reconstruct_line())
         possible_intersection_point = Line.get_intersection_point(self.related_line, line)
         if (min(self.endpoints[0].x, self.endpoints[1].x) <= possible_intersection_point.x <= max(self.endpoints[0].x, self.endpoints[1].x)
             and min(self.endpoints[0].y, self.endpoints[1].y) <= possible_intersection_point.y <= max(self.endpoints[0].y, self.endpoints[1].y)):
@@ -164,16 +177,61 @@ class LineSegment:
         if isinstance(line, Line):
             is_intersect = self.check_intersection(line)
         elif isinstance(line, LineSegment):
-            is_intersect = self.check_intersection(line.reconstruct_line()) & line.check_intersection(self.reconstruct_line())
+            is_intersect = self.check_intersection(line.reconstruct_line()) and line.check_intersection(self.reconstruct_line())
         intersection_point = self.get_intersection_point(line)
         return (is_intersect, intersection_point, self.reconstruct_line())
-        
+
+#TODO:
+"""class Ray:
+    def __init__(self, origin: Point, angle: float):
+        self.related_line = Line(origin, angle)
+        self.angle = angle
+        while not (-180 < self.angle <= 180):
+            if self.angle > 180:
+                self.angle -= 360
+            else:
+                self.angle += 360
+
+    def get_intersection_point(self, )"""
 
 
+class Polygon:
+    def __init__(self, vertexes: list[Point]):
+        if len(vertexes) <= 2: raise ValueError(f'Expected at least 3 vertexes, but {len(vertexes)} was given')
+
+        self.vertexes = vertexes
+        self.edges: list[LineSegment] = []
+        for i in range(len(vertexes)):
+            if i == len(vertexes) - 1:
+                self.edges.append(LineSegment(vertexes[i], vertexes[0]))
+            else:
+                self.edges.append(LineSegment(vertexes[i], vertexes[i+1]))
+        self.max_y = max([point.y for point in vertexes])
+        self.min_y = min([point.y for point in vertexes])
+        self.max_x = max([point.x for point in vertexes])
+        self.min_x = min([point.x for point in vertexes])
+        self.number_of_edges = len(self.edges)
+        self.number_of_vertexes = len(vertexes)
+
+    def is_point_inside(self, point: Point):
+        if not (self.min_y <= point.y <= self.max_y) or not (self.min_x <= point.x <= self.max_x):
+            return False
+        # Based on https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+        is_inside = False
+        j = self.number_of_vertexes - 1
+        for i in range(self.number_of_vertexes):
+            if (((self.vertexes[i].y > point.y) != (self.vertexes[j].y > point.y))
+                 and (point.x < (self.vertexes[j].x - self.vertexes[i].x) * (point.y - self.vertexes[i].y) 
+                 / (self.vertexes[j].y - self.vertexes[i].y) + self.vertexes[i].x)):
+                is_inside = not is_inside
+            j = i
+        return is_inside
+
+ 
 class Plane:
     ORIGIN = Point(0, 0)
 
-    def __init__(self, width, height=None):
+    def __init__(self, width: int, height: int = None):
         """Pass only width to get a square"""
         self._plane = []
         if height != None:
@@ -194,17 +252,17 @@ class Plane:
             'top': Line(Point(self.width, self.height), 0),
             'right': Line(Point(self.width, self.height), 90),
         }
-        self.objects_on_plane = []
+        self.objects_on_plane: list[Line, LineSegment] = []
 
     def size(self):
         return (self.width, self.height)
 
-    def get_point(self, coordinates:Point):
+    def get_point(self, coordinates: Point):
         if coordinates.x >= self.width or coordinates.y >= self.height or coordinates.x < 0 or coordinates.y < 0:
             return None
         return self._plane[coordinates.y][coordinates.x]
 
-    def set_point(self, coordinates:Point, value:int):
+    def set_point(self, coordinates: Point, value: int):
         if coordinates.x >= self.width or coordinates.y >= self.height or coordinates.x < 0 or coordinates.y < 0:
             return None
         self._plane[coordinates.y][coordinates.x] = value
@@ -212,7 +270,7 @@ class Plane:
     def borders_as_list(self):
         return [self.borders[key] for key in self.borders]
 
-    def append_object(self, object_to_append):
+    def append_object(self, object_to_append: Any):
         self.objects_on_plane.append(object_to_append)
 
     def get_closest_object(self, point: Point):
