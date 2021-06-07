@@ -192,6 +192,11 @@ class LightBeamSceneManager:
                     if polygon.is_point_inside(beam.origin):
                         beam.refracion_coefficient = polygon.inner_refraction_coefficient
                         break
+                else:
+                    if self.refraction_lines:
+                        closest_line = self.get_closest_refraction_line(beam.origin)
+                        direction_to_line = closest_line.get_direction_to_point(beam.origin)
+                        beam.refracion_coefficient = closest_line.get_current_refraction_coefficient(direction_to_line)
             beam.coordinates = [beam.origin]
             beam.angle = beam.initial_angle
             beam.relative_intensity = 1
