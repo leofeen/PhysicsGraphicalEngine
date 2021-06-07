@@ -181,6 +181,9 @@ class LineSegment:
         intersection_point = self.get_intersection_point(line)
         return (is_intersect, intersection_point, self.reconstruct_line())
 
+    def get_length(self):
+        return sqrt((self.endpoints[1].x - self.endpoints[0].x)**2 + (self.endpoints[1].y - self.endpoints[0].y)**2)
+
 #TODO:
 """class Ray:
     def __init__(self, origin: Point, angle: float):

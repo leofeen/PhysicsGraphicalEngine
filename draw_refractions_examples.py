@@ -25,7 +25,7 @@ BEAMS = [
 ]
 
 scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, line_segments=LINE_SEGMENTS)
-scene.draw_picture('Simple refractions example')
+scene.draw_picture('Refractions example')
 
 scene.regroup_scene(beams=BEAMS, polygons=POLYGONS, lines=LINES)
-scene.draw_picture('Small prism example')
+scene.draw_picture('Prism example')

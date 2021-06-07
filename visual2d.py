@@ -14,11 +14,10 @@ class Color:
     PINK = (255, 0, 90)
     YELLOW = (255, 255, 0)
     MAGENTA = (255, 0, 255)
-    LIGHT_BLUE = (0, 255, 255)
     WHITE = (255, 255, 255)
     LIGHT_GREEN = (0, 255, 90)
-    PURPLE = (128, 0, 128)
     BLACK = (0, 0, 0)
+    AQUA = (0, 255, 255)
 
     @staticmethod
     def blend_colors(first_color: tuple[int], second_color: tuple[int], blending_coefficient: float):
@@ -51,27 +50,27 @@ class IByPointDraw:
 
 class VisualPlane:
     def __init__(self, width: int = None, height: int = None, *, plane: Plane = None,
-                 path_to_image_folder: str = None, background_color: tuple[int] = Color.BLACK):
+                 path_to_image_folder: str = '', background_color: tuple[int] = Color.BLACK):
         if plane == None:
             self.plane = Plane(width, height)
         else:
             self.plane = plane
         self.image_counter = 0
         self.type_to_object: dict[int, Union[VisualPlane, IByPointDraw]] = {0: self}
-        if path_to_image_folder == None:
-            self.path_to_image_folder = './imgs'
+        if path_to_image_folder == '':
+            self.path_to_image_folder = '.'
         else:
             self.path_to_image_folder = path_to_image_folder
         self.background_color = background_color
 
-    def create_image(self, image_name: str = None):
+    def create_image(self, image_name: str = ''):
         image = Image.new('RGB', self.plane.size())
         image_draw = ImageDraw.ImageDraw(image)
         width, height = self.plane.size()
         for x in range(width):
             for y in range(height-1, -1, -1):
                 image_draw.point((x, y), self.type_to_object[self.plane.get_point(Point(x, height - 1 - y))].get_color_on_point((x, height - 1 - y)))
-        if image_name == None:
+        if image_name == '':
             image.save(f'{self.path_to_image_folder}/image{self.image_counter}.png')
         else:
             image.save(f'{self.path_to_image_folder}/{image_name}.png')
@@ -114,9 +113,9 @@ class VisualLine(IByPointDraw):
         self.visual_plane = visual_plane
         width, height = visual_plane.plane.size()
         if line.angle != 90:
-            for x in range(width*100):
-                round_x = round(x/100)
-                round_y = round(line.get_y_coordinate(x/100))
+            for x in range(width*10):
+                round_x = round(x/10)
+                round_y = round(line.get_y_coordinate(x/10))
                 if 0 <= round_y < height:
                     if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
                         self.draw_coordinates[Point(round_x, round_y)] = self.color

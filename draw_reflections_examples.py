@@ -1,3 +1,4 @@
+from opticalpolygons import ReflectionPolygon
 from visual2d import VisualPlane, Color
 from plane2d import Point
 from opticallines import ReflectionLine, ReflectionSegment
@@ -34,13 +35,17 @@ LINE_SEGMENTS = [
     (ReflectionSegment(Point(650, 500), Point(590, 500), SEGMENTS_REFLECTION_COEFFICIENT), Color.GREEN),
 ]
 
-BEAMS = [
-    (LightBeam(Point(700, 700), -120), Color.RED, True),
-    (LightBeam(Point(300, 300), 85), Color.BLUE, True),
+POLYGONS = [
+    (ReflectionPolygon([Point(200, 480), Point(350, 450), Point(300, 560)], 0.5), Color.YELLOW),
 ]
 
-scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
-scene.draw_picture('Simple reflections example')
+BEAMS = [
+    (LightBeam(Point(700, 700), -120), Color.RED, True),
+    (LightBeam(Point(300, 300), 85), Color.AQUA, True),
+]
+
+scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS, polygons=POLYGONS)
+scene.draw_picture('Reflections example')
 
 scene.regroup_scene(line_segments=LINE_SEGMENTS, beams=BEAMS)
 scene.draw_picture('Black body model')

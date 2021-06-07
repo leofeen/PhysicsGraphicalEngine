@@ -98,7 +98,7 @@ class LightBeamSceneManager:
                       refraction_coefficients_management=refraction_coefficients_management, points=points,
                       polygons=polygons)
             
-    def draw_picture(self, image_name: str = None):
+    def draw_picture(self, image_name: str = ''):
         self.image_counter += 1
         print(f'Started processing the scene №{self.image_counter}')
         for visual_beam in self.visual_beams:
@@ -188,17 +188,10 @@ class LightBeamSceneManager:
 
         for beam, color, draw_source in beams:
             if refraction_coefficients_management:
-                is_inside = False
                 for polygon in  self.refraction_polygons:
                     if polygon.is_point_inside(beam.origin):
-                        is_inside = True
                         beam.refracion_coefficient = polygon.inner_refraction_coefficient
                         break
-                if len(self.refraction_lines) > 0 and not is_inside:
-                    closest_refractor_line = self.get_closest_refraction_line(beam.origin)
-                    direction = closest_refractor_line.get_direction_to_point(beam.origin)
-                    refraction_coefficient = closest_refractor_line.get_current_refraction_coefficient(direction)
-                    beam.refracion_coefficient = refraction_coefficient
             beam.coordinates = [beam.origin]
             beam.angle = beam.initial_angle
             beam.relative_intensity = 1
