@@ -3,8 +3,25 @@ import math
 from opticalpolygons import RefractionPolygon
 from visual2d import Color, IByPointDraw, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon
 from light_beam import LightBeam
-from plane2d import LineSegment, Point, Line, Polygon
+from plane2d import LineSegment, Point, Line, Polygon, Vector2d
 from opticallines import ReflectionLine, RefractionLine
+
+
+def generate_nonpoint_beam(width: float, height: float, presicion: float, origin: Point, angle: float, color: tuple):
+    """
+    Returns a valid input list for LightBeamSceneManager, containing beam with given width and height.
+    Presicion controls how many point beams will be in returned nonpoint beam
+    """
+    beams = []
+    j = -height / 2
+    while 2*j <= height:
+        i = -width / 2
+        while 2*i <= width:
+            shift_vector = Vector2d(i, j)
+            beams.append((LightBeam(origin + shift_vector, angle), color, True))
+            i += presicion
+        j += presicion
+    return beams
 
 
 class VisualLightBeam(IByPointDraw):
@@ -183,8 +200,8 @@ class LightBeamSceneManager:
                 if color != Color.NONE:
                     visual_polygon = VisualPolygon(polygon, self.visual_plane, color)
                     self.visual_polygons.append(visual_polygon)
-            for edge in polygon.edges:
-                self.visual_plane.plane.append_object(edge)
+                for edge in polygon.edges:
+                    self.visual_plane.plane.append_object(edge)
 
         for beam, color, draw_source in beams:
             if refraction_coefficients_management:

@@ -1,3 +1,4 @@
+from polygons2d import Triangle
 from opticalpolygons import ReflectionPolygon
 from visual2d import VisualPlane, Color
 from plane2d import Point
@@ -35,17 +36,32 @@ LINE_SEGMENTS = [
     (ReflectionSegment(Point(650, 500), Point(590, 500), SEGMENTS_REFLECTION_COEFFICIENT), Color.GREEN),
 ]
 
-POLYGONS = [
-    (ReflectionPolygon([Point(200, 480), Point(350, 450), Point(300, 560)], 0.5), Color.YELLOW),
-]
-
 BEAMS = [
     (LightBeam(Point(700, 700), -120), Color.RED, True),
     (LightBeam(Point(300, 300), 85), Color.AQUA, True),
 ]
 
-scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS, polygons=POLYGONS)
+BEAMS2 = [
+    (LightBeam(Point(260, 900), -95), Color.RED, True),
+    (LightBeam(Point(620, 870), -120), Color.BLUE, True),
+]
+
+POLYGONS = [
+    (ReflectionPolygon.from_polygon(Triangle.construct_by_two_sides(Point(320, 450), 150, 250, 30, 65), 1), Color.GREEN),
+    (ReflectionPolygon.from_polygon(Triangle.construct_by_two_sides(Point(190, 190), 280, 330, 20, 65), 1), Color.AQUA),
+    (ReflectionPolygon.from_polygon(Triangle.construct_by_two_sides(Point(420, 510), 90, 75, 40, -55), 1), Color.YELLOW),
+    (ReflectionPolygon.from_polygon(Triangle.construct_by_two_sides(Point(460, 580), 90, 85, 45, -60), 1), Color.GREEN),
+    (ReflectionPolygon.from_polygon(Triangle.construct_by_two_sides(Point(530, 420), 280, 150, 65, -55), 1), Color.AQUA),
+    (ReflectionPolygon([Point(200, 510), Point(270, 560), Point(240, 740), Point(170, 730)], 1), Color.MAGENTA),
+    (ReflectionPolygon([Point(320, 190), Point(470, 200), Point(460, 360), Point(310, 350)], 1), Color.MAGENTA),
+    (ReflectionPolygon([Point(660, 700), Point(740, 660), Point(750, 760), Point(680, 790)], 1), Color.YELLOW),
+]
+
+scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
 scene.draw_picture('Reflections example')
 
 scene.regroup_scene(line_segments=LINE_SEGMENTS, beams=BEAMS)
 scene.draw_picture('Black body model')
+
+scene.regroup_scene(beams=BEAMS2, polygons=POLYGONS)
+scene.draw_picture('Polygonal mirrors')

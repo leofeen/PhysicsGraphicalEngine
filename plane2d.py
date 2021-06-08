@@ -1,7 +1,7 @@
 import math
 from typing import Any, Union
 import numpy as np
-from math import radians, degrees, sqrt, tan, atan, fabs
+from math import radians, degrees, sqrt, tan, atan, fabs, cos, sin
 
 
 class Point:
@@ -12,20 +12,94 @@ class Point:
     def __str__(self):
         return f'({self.x}; {self.y})'
 
-    def __eq__(self, other: Union[Any, 'Point']) -> bool:
-        if not isinstance(other, Point):
+    def __eq__(self, other: Union[Any, 'Point', 'Vector2d']) -> bool:
+        if not isinstance(other, Point) and not isinstance(other, Vector2d):
             return False
         return (self.x == other.x) and (self.y == other.y)
 
     def __hash__(self) -> int:
-        return hash(self.__repr__())
+        return hash(self.__str__())
 
     def __repr__(self) -> str:
         return f'Point({self.x}, {self.y})'
 
+    def __add__(self, other: 'Vector2d'):
+        if not isinstance(other, Vector2d):
+            raise TypeError(f'Unsopported type operation + for Point and {other.__class__.__name__}')
+        return Point(self.x + other.x, self.y + other.y)
+
+    def as_vector(self):
+        return Vector2d(self.x, self.y)
+
+
+#TODO: support Vector2d instead of Point where needed
+class Vector2d:
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
+
+    def __repr__(self) -> str:
+        return f'Vector2d({self.x}, {self.y})'
+
+    def __eq__(self, other: Union[Any, 'Point', 'Vector2d']) -> bool:
+        if not isinstance(other, Point) and not isinstance(other, Vector2d):
+            return False
+        return (self.x == other.x) and (self.y == other.y)
+
+    def __str__(self):
+        return f'({self.x}; {self.y})'
+
+    def __hash__(self) -> int:
+        return hash(self.__str__())
+
+    def __add__(self, other: Union['Vector2d', Point]):
+        return Vector2d(self.x + other.x, self.y + other.y)
+
+    def __sub__(self, other: Union['Vector2d', Point]):
+        return Vector2d(self.x - other.x, self.y - other.y)
+
+    def __mul__(self, scalar: Union[int, float, 'Vector2d']):
+        """Returns dot product if Vector2d is passed"""
+        if isinstance(scalar, Vector2d):
+            return self.x * scalar.x + self.y * scalar.y
+        if not isinstance(scalar, int) and not isinstance(scalar, float):
+            raise TypeError(f'Unsopported type operation * for Vector2d and {scalar.__class__.__name__}')
+        return Vector2d(self.x * scalar, self.y * scalar)
+
+    def __truediv__(self, scalar: Union[int, float]):
+        if not isinstance(scalar, int) and not isinstance(scalar, float):
+            raise TypeError(f'Unsopported type operation / for Vector2d and {scalar.__class__.__name__}')
+        return Vector2d(self.x / scalar, self.y / scalar)
+
+    def __floordiv__(self, scalar: Union[int, float]):
+        if not isinstance(scalar, int) and not isinstance(scalar, float):
+            raise TypeError(f'Unsopported type operation // for Vector2d and {scalar.__class__.__name__}')
+        return Vector2d(self.x // scalar, self.y // scalar)
+
+    def __matmul__(self, other: 'Vector2d'):
+        if not isinstance(other, Vector2d):
+            raise TypeError(f'Unsopported type operation @ for Vector2d and {other.__class__.__name__}')
+        return self.x*other.y - self.y*other.x
+
+    def as_point(self):
+        return Point(self.x, self.y)
+    
+    def length(self):
+        return sqrt(self.x*self.x + self.y*self.y)
+
+    @staticmethod
+    def construct_from_length(length: float, angle: float = 0):
+        x = length * cos(radians(angle))
+        y = length * sin(radians(angle))
+        return Vector2d(x, y)
+
+    @staticmethod
+    def construct_from_two_points(start_point: Point, end_point: Point):
+        return Vector2d(end_point.x - start_point.x, end_point.y - start_point.y)
+
 
 class Line:
-    def __init__(self, sample_coordinates: Point, angle: float = None, angle_coefficient: float = None):
+    def __init__(self, sample_coordinates: Union[Point, Vector2d], angle: float = None, angle_coefficient: float = None):
         """Angle in degrees"""
         if angle == None and angle_coefficient == None:
             raise ValueError('Neither angle or coefficient was not given')
@@ -48,7 +122,10 @@ class Line:
                 self.angle = degrees(atan(angle_coefficient))
             else:
                 self.angle = 90
-        self.sample_coordinates = sample_coordinates
+        if isinstance(sample_coordinates, Point):
+            self.sample_coordinates = sample_coordinates
+        elif isinstance(sample_coordinates, Vector2d):
+            self.sample_coordinates = self.as_point()
         if self.angle_coefficient != math.inf:
             self.oy_segment = sample_coordinates.y - self.angle_coefficient*sample_coordinates.x
         else:
@@ -60,7 +137,7 @@ class Line:
         else:
             return x if x == self.sample_coordinates.x else None
 
-    def get_direction_to_point(self, point: Point):
+    def get_direction_to_point(self, point: Union[Point, Vector2d]):
         if self.angle == 90:
             if point.x == self.sample_coordinates.x:
                 return 's'
@@ -103,7 +180,7 @@ class Line:
 
         if a1 == a2:
             return 0
-        if (a1 > 0 and a2 > 0) or (a1 < 0 and a2 > 0):
+        if (a1 > 0 and a2 > 0) or (a1 < 0 and a2 < 0):
             angle = fabs(a1 - a2)
         else:    
             angle = fabs(a1) + fabs(a2)
@@ -149,6 +226,8 @@ class Line:
             angle_coefficient = math.inf
         return Line(first_point, angle_coefficient=angle_coefficient)
 
+    #TODO: construct from Vector2d
+
 
 class LineSegment:
     def __init__(self, first_point: Point, second_point: Point):
@@ -181,7 +260,7 @@ class LineSegment:
         intersection_point = self.get_intersection_point(line)
         return (is_intersect, intersection_point, self.reconstruct_line())
 
-    def get_length(self):
+    def length(self):
         return sqrt((self.endpoints[1].x - self.endpoints[0].x)**2 + (self.endpoints[1].y - self.endpoints[0].y)**2)
 
 #TODO:

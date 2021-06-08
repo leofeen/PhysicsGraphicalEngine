@@ -1,6 +1,8 @@
 from math import sin, cos, radians, asin, degrees
 from typing import Union
 
+from PIL.Image import new
+
 from plane2d import Line, LineSegment, Point
 from opticallines import ReflectionLine, RefractionLine
 
@@ -32,14 +34,18 @@ class LightBeam:
         return Point(x, y)
 
     def propogate_until(self, lines: list[Union[LineSegment, Line]]):
-        if self._number_of_bounces > self.max_number_of_bounces: return
+        if self._number_of_bounces > self.max_number_of_bounces: return None
 
         starting_directions = []
         for i, line in enumerate(lines):
             if isinstance(line, Line):
                 starting_directions.append(line.get_direction_to_point(self.coordinates[-1]))
             elif isinstance(line, LineSegment):
-                starting_directions.append(line.reconstruct_line().get_direction_to_point(self.coordinates[-1]))
+                direction = line.reconstruct_line().get_direction_to_point(self.coordinates[-1])
+                if (direction == 's' and line.check_intersection(Line(self.coordinates[-1], self.angle))) or direction != 's':
+                    starting_directions.append(direction)
+                else:
+                    starting_directions.append('lou')
             if starting_directions[i] == 's':
                 return None
         while True:

@@ -1,3 +1,4 @@
+from math import fabs
 from opticallines import LightTransparentMixin
 from typing import Any, Iterable, Union
 from PIL import Image, ImageDraw
@@ -113,9 +114,10 @@ class VisualLine(IByPointDraw):
         self.visual_plane = visual_plane
         width, height = visual_plane.plane.size()
         if line.angle != 90:
-            for x in range(width*10):
-                round_x = round(x/10)
-                round_y = round(line.get_y_coordinate(x/10))
+            number_of_trials = round(fabs(line.angle_coefficient)) if fabs(line.angle_coefficient) >= 1 else 1
+            for x in range(width*number_of_trials):
+                round_x = round(x/number_of_trials)
+                round_y = round(line.get_y_coordinate(x/number_of_trials))
                 if 0 <= round_y < height:
                     if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
                         self.draw_coordinates[Point(round_x, round_y)] = self.color

@@ -14,6 +14,10 @@ class ReflectionPolygon(Polygon):
             else:
                 self.edges.append(ReflectionSegment(vertexes[i], vertexes[i+1], reflection_coefficient))
 
+    @staticmethod
+    def from_polygon(polygon: Polygon, reflection_coefficient: float):
+        return ReflectionPolygon(polygon.vertexes, reflection_coefficient)
+
 
 class RefractionPolygon(Polygon, LightTransparentMixin):
     def __init__(self, vertexes: list[Point], inner_refraction_coefficient: float,
@@ -35,3 +39,7 @@ class RefractionPolygon(Polygon, LightTransparentMixin):
         self.edges: list[RefractionSegment] = edges
         self.inner_refraction_coefficient = inner_refraction_coefficient
         self.outer_refraction_coefficient = outer_refraction_coefficient
+
+    @staticmethod
+    def from_polygon(polygon: Polygon, inner_refraction_coefficient: float, outer_refraction_coefficient: float = 1):
+        return RefractionPolygon(polygon.vertexes, inner_refraction_coefficient, outer_refraction_coefficient)

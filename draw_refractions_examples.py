@@ -16,7 +16,7 @@ LINES = [
 ]
 
 POLYGONS = [
-    (RefractionPolygon([Point(410, 290), Point(520, 120), Point(390, 120)], 1.6, 2.1, transparensy=0.5), Color.GREEN),
+    (RefractionPolygon([Point(410, 290), Point(520, 120), Point(390, 120)], 1.6, 2.1, transparensy=0.8), Color.GREEN),
 ]
 
 BEAMS = [
