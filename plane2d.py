@@ -14,7 +14,7 @@ class Point:
 
     def __eq__(self, other: Union[Any, 'Point', 'Vector2d']) -> bool:
         if not isinstance(other, Point) and not isinstance(other, Vector2d):
-            return False
+            return NotImplemented
         return (self.x == other.x) and (self.y == other.y)
 
     def __hash__(self) -> int:
@@ -25,8 +25,13 @@ class Point:
 
     def __add__(self, other: 'Vector2d'):
         if not isinstance(other, Vector2d):
-            raise TypeError(f'Unsopported type operation + for Point and {other.__class__.__name__}')
+            return NotImplemented
         return Point(self.x + other.x, self.y + other.y)
+
+    def __sub__(self, other: 'Vector2d'):
+        if not isinstance(other, Vector2d):
+            return NotImplemented
+        return Point(self.x - other.x, self.y - other.y)
 
     def as_vector(self):
         return Vector2d(self.x, self.y)
@@ -43,7 +48,7 @@ class Vector2d:
 
     def __eq__(self, other: Union[Any, 'Point', 'Vector2d']) -> bool:
         if not isinstance(other, Point) and not isinstance(other, Vector2d):
-            return False
+            return NotImplemented
         return (self.x == other.x) and (self.y == other.y)
 
     def __str__(self):
@@ -53,9 +58,13 @@ class Vector2d:
         return hash(self.__str__())
 
     def __add__(self, other: Union['Vector2d', Point]):
+        if not isinstance(other, Point) or not isinstance(other, Vector2d):
+            return NotImplemented
         return Vector2d(self.x + other.x, self.y + other.y)
 
     def __sub__(self, other: Union['Vector2d', Point]):
+        if not isinstance(other, Point) or not isinstance(other, Vector2d):
+            return NotImplemented
         return Vector2d(self.x - other.x, self.y - other.y)
 
     def __mul__(self, scalar: Union[int, float, 'Vector2d']):
@@ -63,22 +72,22 @@ class Vector2d:
         if isinstance(scalar, Vector2d):
             return self.x * scalar.x + self.y * scalar.y
         if not isinstance(scalar, int) and not isinstance(scalar, float):
-            raise TypeError(f'Unsopported type operation * for Vector2d and {scalar.__class__.__name__}')
+            return NotImplemented
         return Vector2d(self.x * scalar, self.y * scalar)
 
     def __truediv__(self, scalar: Union[int, float]):
         if not isinstance(scalar, int) and not isinstance(scalar, float):
-            raise TypeError(f'Unsopported type operation / for Vector2d and {scalar.__class__.__name__}')
+            return NotImplemented
         return Vector2d(self.x / scalar, self.y / scalar)
 
     def __floordiv__(self, scalar: Union[int, float]):
         if not isinstance(scalar, int) and not isinstance(scalar, float):
-            raise TypeError(f'Unsopported type operation // for Vector2d and {scalar.__class__.__name__}')
+            return NotImplemented
         return Vector2d(self.x // scalar, self.y // scalar)
 
     def __matmul__(self, other: 'Vector2d'):
         if not isinstance(other, Vector2d):
-            raise TypeError(f'Unsopported type operation @ for Vector2d and {other.__class__.__name__}')
+            return NotImplemented
         return self.x*other.y - self.y*other.x
 
     def as_point(self):
@@ -100,10 +109,13 @@ class Vector2d:
 
 class Line:
     def __init__(self, sample_coordinates: Union[Point, Vector2d], angle: float = None, angle_coefficient: float = None):
-        """Angle in degrees"""
-        if angle == None and angle_coefficient == None:
+        """
+        Constructs a line, that goes through given point.
+        Angle must be in degrees.
+        """
+        if angle is None and angle_coefficient is None:
             raise ValueError('Neither angle or coefficient was not given')
-        if angle_coefficient == None:
+        if angle_coefficient is None:
             self.angle = angle
             while self.angle < -180 or self.angle > 180:
                 if self.angle < -180:
@@ -188,7 +200,7 @@ class Line:
         
     @staticmethod
     def perpendicular_line(line: Union['Line', 'LineSegment'], point_from: Point = None):
-        if point_from == None:
+        if point_from is None:
             coordinates = line.sample_coordinates
         else:
             coordinates = point_from
@@ -209,10 +221,10 @@ class Line:
             second_line = second_line.reconstruct_line()
         if first_line.angle_coefficient == second_line.angle_coefficient:
             return None
-        if first_line.oy_segment != None and second_line.oy_segment != None:
+        if first_line.oy_segment is not None and second_line.oy_segment is not None:
             x = (second_line.oy_segment - first_line.oy_segment) / (first_line.angle_coefficient - second_line.angle_coefficient)
             return Point(x, first_line.get_y_coordinate(x))
-        if first_line.oy_segment == None:
+        if first_line.oy_segment is None:
             x = first_line.sample_coordinates.x
             return Point(x, second_line.get_y_coordinate(x))
         x = second_line.sample_coordinates.x
@@ -241,6 +253,7 @@ class LineSegment:
         return self.related_line
 
     def check_intersection(self, line: Union[Line, 'LineSegment']):
+        """Checks if intersection point lies on line segment"""
         if isinstance(line, LineSegment):
             return self.check_intersection(line.reconstruct_line()) and line.check_intersection(self.reconstruct_line())
         possible_intersection_point = Line.get_intersection_point(self.related_line, line)
@@ -250,9 +263,21 @@ class LineSegment:
         return False
     
     def get_intersection_point(self, line: Union[Line, 'LineSegment']):
+        """
+        Warning: gives intersection point without checking
+        if it is actually lies on line segment.
+        Use get_intersection to ensure, that point lies on line segment.
+        """
         return Line.get_intersection_point(line, self)
 
     def get_intersection(self, line: Union[Line, 'LineSegment']):
+        """
+        Returns following tuple: (
+            is point actually lies on line segment: bool,
+            intersection point: Point,
+            line, reconstructed from line segment: Line 
+        )
+        """
         if isinstance(line, Line):
             is_intersect = self.check_intersection(line)
         elif isinstance(line, LineSegment):
@@ -261,6 +286,7 @@ class LineSegment:
         return (is_intersect, intersection_point, self.reconstruct_line())
 
     def length(self):
+        """Returns length of line segment"""
         return sqrt((self.endpoints[1].x - self.endpoints[0].x)**2 + (self.endpoints[1].y - self.endpoints[0].y)**2)
 
 #TODO:
@@ -279,7 +305,11 @@ class LineSegment:
 
 class Polygon:
     def __init__(self, vertexes: list[Point]):
+        """
+        Constructs a polygon, using vertexes in given order.
+        """
         if len(vertexes) <= 2: raise ValueError(f'Expected at least 3 vertexes, but {len(vertexes)} was given')
+        if len(set(vertexes)) < len(vertexes): raise ValueError(f"Polygon can't have two xertexes at the same point")
 
         self.vertexes = vertexes
         self.edges: list[LineSegment] = []
@@ -314,9 +344,9 @@ class Plane:
     ORIGIN = Point(0, 0)
 
     def __init__(self, width: int, height: int = None):
-        """Pass only width to get a square"""
+        """Pass only width to get a square plane"""
         self._plane = []
-        if height != None:
+        if height is not None:
             for _ in range(height):
                 self._plane.append([0]*width)
         else:
@@ -324,7 +354,7 @@ class Plane:
                 self._plane.append([0]*width)
         self._plane = np.array(self._plane, int)
         self.width = width
-        if height != None:
+        if height is not None:
             self.height = height
         else:
             self.height = width

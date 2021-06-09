@@ -1,7 +1,8 @@
 from math import fabs
-from opticallines import LightTransparentMixin
 from typing import Any, Iterable, Union
+
 from PIL import Image, ImageDraw
+
 from plane2d import Line, LineSegment, Plane, Point, Polygon
 
 
@@ -22,6 +23,12 @@ class Color:
 
     @staticmethod
     def blend_colors(first_color: tuple[int], second_color: tuple[int], blending_coefficient: float):
+        """
+        Blends two given colors and returns resulting colors.
+        Blending coefficient determines how much second color will affect first.
+        If blenging coefficient equals to 0, first color will be returned.
+        If blenging coefficient equals to 1, second color will be returned. 
+        """
         if not (0 <= blending_coefficient <= 1):
             raise ValueError(f'Blending coefficient must be in [0; 1], but {blending_coefficient} was given')
 
@@ -41,18 +48,25 @@ class IByPointDraw:
         self.type = IByPointDraw.type_
         self.draw_coordinates: dict[Point, tuple] = {}
         self.color = (0, 0, 0)
-        self.transparensy = 1
-        if isinstance(obj, LightTransparentMixin):
-            self.transparensy = obj.transparensy
+        
+        try: 
+            from opticallines import LightTransparentMixin
+            if isinstance(obj, LightTransparentMixin):
+                self.transparensy = obj.transparensy
+        except ImportError:
+            self.transparensy = 1
 
-    def get_color_on_point(self, coordinates: tuple):
-        return self.draw_coordinates.get(Point(coordinates[0], coordinates[1]), self.color)
+    def get_color_on_point(self, coordinates: Union[tuple, Point]):
+        if isinstance(coordinates, tuple):
+            return self.draw_coordinates.get(Point(coordinates[0], coordinates[1]), self.color)
+        else:
+            return self.draw_coordinates.get(coordinates, self.color)
 
 
 class VisualPlane:
     def __init__(self, width: int = None, height: int = None, *, plane: Plane = None,
                  path_to_image_folder: str = '', background_color: tuple[int] = Color.BLACK):
-        if plane == None:
+        if plane is None:
             self.plane = Plane(width, height)
         else:
             self.plane = plane
@@ -78,7 +92,7 @@ class VisualPlane:
         self.image_counter += 1
 
     def bind_object(self, obj: IByPointDraw):
-        if self.type_to_object.get(obj.type_, None) == None:
+        if self.type_to_object.get(obj.type_, None) is None:
             self.type_to_object[obj.type_] = obj
         else:
             raise KeyError(f'Type {obj.type_} already binded to a color')
@@ -114,17 +128,17 @@ class VisualLine(IByPointDraw):
         self.visual_plane = visual_plane
         width, height = visual_plane.plane.size()
         if line.angle != 90:
-            number_of_trials = round(fabs(line.angle_coefficient)) if fabs(line.angle_coefficient) >= 1 else 1
+            number_of_trials = round(fabs(line.angle_coefficient))+1 if fabs(line.angle_coefficient) >= 1 else 1
             for x in range(width*number_of_trials):
                 round_x = round(x/number_of_trials)
                 round_y = round(line.get_y_coordinate(x/number_of_trials))
                 if 0 <= round_y < height:
-                    if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
+                    if self.draw_coordinates.get(Point(round_x, round_y), None) is None:
                         self.draw_coordinates[Point(round_x, round_y)] = self.color
         else:
             round_x = round(line.sample_coordinates.x)
             for y in range(height):
-                if self.draw_coordinates.get(Point(round_x, y), None) == None:
+                if self.draw_coordinates.get(Point(round_x, y), None) is None:
                     self.draw_coordinates[Point(round_x, y)] = self.color
         self.visual_plane.bind_object(self)
 
@@ -155,7 +169,7 @@ class VisualLineSegment(IByPointDraw):
                 round_x = round(x/100)
                 round_y = round(self.line_segment.reconstruct_line().get_y_coordinate(x/100))
                 if 0 <= round_y < height and 0 <= round_x < width:
-                        if self.draw_coordinates.get(Point(round_x, round_y), None) == None:
+                        if self.draw_coordinates.get(Point(round_x, round_y), None) is None:
                             self.draw_coordinates[Point(round_x, round_y)] = self.color
         else:
             round_x = round(self.line_segment.endpoints[0].x)
@@ -163,7 +177,7 @@ class VisualLineSegment(IByPointDraw):
             max_y = max(round(self.line_segment.endpoints[0].y), round(self.line_segment.endpoints[1].y))
             for y in range(min_y, max_y+1):
                 if 0 <= y < height and 0 <= round_x < width:
-                        if self.draw_coordinates.get(Point(round_x, y), None) == None:
+                        if self.draw_coordinates.get(Point(round_x, y), None) is None:
                             self.draw_coordinates[Point(round_x, y)] = self.color
 
 
@@ -179,5 +193,5 @@ class VisualPolygon(IByPointDraw):
         for x in range(round(polygon.min_x), round(polygon.max_x)+1):
             for y in range(round(polygon.min_y), round(polygon.max_y)+1):
                 point = Point(x, y)
-                if polygon.is_point_inside(point) and self.draw_coordinates.get(point, None) == None:
+                if polygon.is_point_inside(point) and self.draw_coordinates.get(point, None) is None:
                     self.draw_coordinates[point] = self.color

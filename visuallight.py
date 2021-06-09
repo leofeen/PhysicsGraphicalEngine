@@ -34,6 +34,7 @@ class VisualLightBeam(IByPointDraw):
         self.type_ = VisualLightBeam.type_
         self.visual_plane.bind_object(self)
         self.diffusion_treshold = diffusion_treshold
+        self.transparensy = 0.5
 
     def draw_source(self):
         source_center = Point(round(self.beam.coordinates[0].x), round(self.beam.coordinates[0].y))
@@ -52,7 +53,7 @@ class VisualLightBeam(IByPointDraw):
                     x += i
                     y += i
                 if (x >= 0) and (x < self.visual_plane.plane.size()[0]) and (y >= 0) and (y < self.visual_plane.plane.size()[1]):
-                    if self.draw_coordinates.get(Point(x, y), None) == None:
+                    if self.draw_coordinates.get(Point(x, y), None) is None:
                         self.draw_coordinates[Point(x, y)] = self.color
 
     def update_intensity(self):
@@ -65,7 +66,7 @@ class VisualLightBeam(IByPointDraw):
             x, y = point.x, point.y
             rounded_x = round(x)
             rounded_y = round(y)
-            if self.draw_coordinates.get(Point(rounded_x, rounded_y), None) == None:
+            if self.draw_coordinates.get(Point(rounded_x, rounded_y), None) is None:
                 self.draw_coordinates[Point(rounded_x, rounded_y)] = self.color
 
     def fully_propogate(self):
@@ -94,7 +95,7 @@ class VisualLightBeam(IByPointDraw):
     def blend_with_passed_objects(self):
         for point in self.draw_coordinates:
             value_on_point = self.visual_plane.get_value_on_point(point)
-            if value_on_point != 0 and value_on_point != None:
+            if value_on_point != 0 and value_on_point is not None:
                 object_passed = self.visual_plane.get_binded_object(value_on_point)
                 passed_color = object_passed.get_color_on_point((point.x, point.y))
                 if passed_color == Color.NONE:
@@ -167,14 +168,14 @@ class LightBeamSceneManager:
         self.visual_line_segments: list[VisualLineSegment] = []
         self.visual_polygons: list[VisualPolygon] = []
 
-        if points != None:
+        if points is not None:
             for point, color in points:
                 self.points.append(point)
                 if color != Color.NONE:
                     visual_point = VisualPoint(point, self.visual_plane, color)
                     self.visual_points.append(visual_point)
 
-        if lines != None:
+        if lines is not None:
             for line, color in lines:
                 self.lines.append(line)
                 if isinstance(line, RefractionLine):
@@ -184,7 +185,7 @@ class LightBeamSceneManager:
                     self.visual_lines.append(visual_line)
                 self.visual_plane.plane.append_object(line)
 
-        if line_segments != None:
+        if line_segments is not None:
             for line_segment, color in line_segments:
                 self.line_segments.append(line_segment)
                 if color != Color.NONE:
@@ -192,7 +193,7 @@ class LightBeamSceneManager:
                     self.visual_line_segments.append(visual_line_segment)
                 self.visual_plane.plane.append_object(line_segment)
 
-        if polygons != None:
+        if polygons is not None:
             for polygon, color in polygons:
                 self.polygons.append(polygon)
                 if isinstance(polygon, RefractionPolygon):

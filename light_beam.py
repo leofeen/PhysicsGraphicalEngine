@@ -57,7 +57,7 @@ class LightBeam:
                         self.coordinates.pop()
                         movement_line = Line(self.coordinates[-1], self.angle)
                         intersection_point = Line.get_intersection_point(line, movement_line)
-                        if intersection_point != None:
+                        if intersection_point is not None:
                             self.coordinates.append(intersection_point)
                         return line
                 elif isinstance(line, LineSegment):
