@@ -1,13 +1,22 @@
 import math
 
-from opticalpolygons import RefractionPolygon
-from visual2d import Color, IByPointDraw, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon
+from opticalfigures import RefractionCircle, RefractionPolygon
+from visual2d import Color, IByPointDraw, VisaulCircle, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon, ColorType
 from light_beam import LightBeam
-from plane2d import LineSegment, Point, Line, Polygon, Vector2d
+from plane2d import Cirlce, LineSegment, Point, Line, Polygon, Vector2d
 from opticallines import ReflectionLine, RefractionLine
 
 
-def generate_nonpoint_beam(width: float, height: float, presicion: float, origin: Point, angle: float, color: tuple):
+BeamsTemplateList = list[tuple[LightBeam, ColorType, bool]]
+PointTemplateList = list[tuple[Point, ColorType]]
+LinesTemplateList = list[tuple[Line, ColorType]]
+LinesSegmentsTemplateList = list[tuple[LineSegment, ColorType]]
+PolygonsTemplateList = list[tuple[Polygon, ColorType]]
+CirclesTemplateList = list[tuple[Cirlce, ColorType, bool]]
+
+
+def generate_nonpoint_beam(width: float, height: float, presicion: float,
+                           origin: Point, angle: float, color: ColorType) -> BeamsTemplateList:
     """
     Returns a valid input list for LightBeamSceneManager, containing beam with given width and height.
     Presicion controls how many point beams will be in returned nonpoint beam
@@ -25,7 +34,7 @@ def generate_nonpoint_beam(width: float, height: float, presicion: float, origin
 
 
 class VisualLightBeam(IByPointDraw):
-    def __init__(self, light_beam: LightBeam, visual_plane: VisualPlane, color: tuple, diffusion_treshold: int = 5):
+    def __init__(self, light_beam: LightBeam, visual_plane: VisualPlane, color: ColorType, diffusion_treshold: int = 5) -> None:
         super().__init__(light_beam)
         self.beam = light_beam
         self.visual_plane = visual_plane
@@ -36,7 +45,7 @@ class VisualLightBeam(IByPointDraw):
         self.diffusion_treshold = diffusion_treshold
         self.transparensy = 0.5
 
-    def draw_source(self):
+    def draw_source(self) -> None:
         source_center = Point(round(self.beam.coordinates[0].x), round(self.beam.coordinates[0].y))
         for n in range(4):
             for i in range(-3, 4):
@@ -56,12 +65,12 @@ class VisualLightBeam(IByPointDraw):
                     if self.draw_coordinates.get(Point(x, y), None) is None:
                         self.draw_coordinates[Point(x, y)] = self.color
 
-    def update_intensity(self):
+    def update_intensity(self) -> None:
         new_intensity = self.beam.relative_intensity
         background_color = self.visual_plane.background_color
         self.color = Color.blend_colors(self.original_color, background_color, 1-new_intensity)
 
-    def update_draw_coordinates(self):
+    def update_draw_coordinates(self) -> None:
         for point in self.beam.coordinates:
             x, y = point.x, point.y
             rounded_x = round(x)
@@ -69,7 +78,7 @@ class VisualLightBeam(IByPointDraw):
             if self.draw_coordinates.get(Point(rounded_x, rounded_y), None) is None:
                 self.draw_coordinates[Point(rounded_x, rounded_y)] = self.color
 
-    def fully_propogate(self):
+    def fully_propogate(self) -> None:
         while True:
             if not self.check_diffusion(): break
 
@@ -83,7 +92,7 @@ class VisualLightBeam(IByPointDraw):
             else:
                 break
 
-    def check_diffusion(self):
+    def check_diffusion(self) -> bool:
         background_color = self.visual_plane.background_color
         red_delta = math.fabs(background_color[0] - self.color[0])
         green_delta = math.fabs(background_color[1] - self.color[1])
@@ -92,7 +101,7 @@ class VisualLightBeam(IByPointDraw):
             return False
         return True
 
-    def blend_with_passed_objects(self):
+    def blend_with_passed_objects(self) -> None:
         for point in self.draw_coordinates:
             value_on_point = self.visual_plane.get_value_on_point(point)
             if value_on_point != 0 and value_on_point is not None:
@@ -105,20 +114,23 @@ class VisualLightBeam(IByPointDraw):
 
 
 class LightBeamSceneManager:
-    def __init__(self, visual_plane: VisualPlane, *, beams: list[tuple[LightBeam, tuple, bool]],
-                 points: list[tuple[Point, tuple]] = None, lines: list[tuple[Line, tuple]] = None,
-                 line_segments: list[tuple[LineSegment, tuple]] = None, polygons: list[tuple[Polygon, tuple]] = None,
-                  refraction_coefficients_management: bool = True) -> None:
+    def __init__(self, visual_plane: VisualPlane, *, beams: BeamsTemplateList,
+                 points: PointTemplateList = None, lines: LinesTemplateList = None,
+                 line_segments: LinesSegmentsTemplateList = None, polygons: PolygonsTemplateList = None,
+                 circles: CirclesTemplateList = None, refraction_coefficients_management: bool = True) -> None:
         self.visual_plane: VisualPlane = visual_plane
         self.image_counter = 0
 
         self._resolve(beams=beams, line_segments=line_segments, lines=lines,
                       refraction_coefficients_management=refraction_coefficients_management, points=points,
-                      polygons=polygons)
+                      polygons=polygons, circles=circles)
             
-    def draw_picture(self, image_name: str = ''):
+    def draw_picture(self, image_name: str = '') -> None:
         self.image_counter += 1
-        print(f'Started processing the scene №{self.image_counter}')
+        if image_name:
+            print(f'Started processing "{image_name}"')
+        else:
+            print(f'Started processing the scene №{self.image_counter}')
         for visual_beam in self.visual_beams:
             visual_beam.fully_propogate()
 
@@ -127,6 +139,9 @@ class LightBeamSceneManager:
 
         for visual_polygon in self.visual_polygons:
             self.visual_plane.draw_object_by_point(visual_polygon)
+
+        for visual_circle in self.visual_circles:
+            self.visual_plane.draw_object_by_point(visual_circle)
 
         for visual_line_segment in self.visual_line_segments:
             self.visual_plane.draw_object_by_point(visual_line_segment)
@@ -139,34 +154,41 @@ class LightBeamSceneManager:
             self.visual_plane.draw_object_by_point(visual_beam)
 
         self.visual_plane.create_image(image_name)
-        print(f'Image №{self.image_counter} created')
+        if image_name:
+            print(f'Image "{image_name}" created')
+        else:
+            print(f'Image №{self.image_counter} created')
 
-    def get_closest_refraction_line(self, point: Point):
+    def get_closest_refraction_line(self, point: Point) -> RefractionLine:
         closest = None
         min_distance = math.inf
         for obj in self.refraction_lines:
-            distance = obj.get_distance_from_a_point(point)
+            distance = obj.get_distance_to_point(point)
             if distance < min_distance:
                 closest = obj
         return closest
 
-    def _resolve(self, *, beams: list[tuple[LightBeam, tuple, bool]],
-                 points: list[tuple[Point, tuple]] = None, lines: list[tuple[Line, tuple]] = None,
-                 line_segments: list[tuple[LineSegment, tuple]] = None, polygons: list[tuple[Polygon, tuple]] = None,
-                 refraction_coefficients_management: bool = True):
+    def _resolve(self, *, beams: BeamsTemplateList,
+                 points: PointTemplateList = None, lines: LinesTemplateList = None,
+                 line_segments: LinesSegmentsTemplateList = None, polygons: PolygonsTemplateList = None,
+                 circles: CirclesTemplateList = None, refraction_coefficients_management: bool = True) -> None:
         self.points: list[Point] = []
         self.lines: list[Line] = []
-        self.refraction_lines: list[RefractionLine] = []
         self.beams: list[LightBeam] = []
         self.line_segments: list[LineSegment] = []
         self.polygons: list[Polygon] = []
+        self.circles: list[Cirlce] = []
+
         self.refraction_polygons: list[RefractionPolygon] = []
+        self.refraction_lines: list[RefractionLine] = []
+        self.refraction_circles: list[RefractionCircle] = []
 
         self.visual_points: list[VisualPoint] = []
         self.visual_lines: list[VisualLine] = []
         self.visual_beams: list[VisualLightBeam] = []
         self.visual_line_segments: list[VisualLineSegment] = []
         self.visual_polygons: list[VisualPolygon] = []
+        self.visual_circles: list[VisaulCircle] = []
 
         if points is not None:
             for point, color in points:
@@ -204,17 +226,32 @@ class LightBeamSceneManager:
                 for edge in polygon.edges:
                     self.visual_plane.plane.append_object(edge)
 
+        if circles is not None:
+            for circle, color, draw_only_circumference in circles:
+                self.circles.append(circle)
+                if isinstance(circle, RefractionCircle):
+                    self.refraction_circles.append(circle)
+                if color != Color.NONE:
+                    visual_circle = VisaulCircle(circle, self.visual_plane, color, draw_only_circumference)
+                    self.visual_circles.append(visual_circle)
+                self.visual_plane.plane.append_object(circle)
+
         for beam, color, draw_source in beams:
             if refraction_coefficients_management:
-                for polygon in  self.refraction_polygons:
-                    if polygon.is_point_inside(beam.origin):
-                        beam.refracion_coefficient = polygon.inner_refraction_coefficient
+                for circle in self.refraction_circles:
+                    if circle.is_point_inside(beam.origin):
+                        beam.refracion_coefficient = circle.inner_refraction_coefficient
                         break
                 else:
-                    if self.refraction_lines:
-                        closest_line = self.get_closest_refraction_line(beam.origin)
-                        direction_to_line = closest_line.get_direction_to_point(beam.origin)
-                        beam.refracion_coefficient = closest_line.get_current_refraction_coefficient(direction_to_line)
+                    for polygon in self.refraction_polygons:
+                        if polygon.is_point_inside(beam.origin):
+                            beam.refracion_coefficient = polygon.inner_refraction_coefficient
+                            break
+                    else:
+                        if self.refraction_lines:
+                            closest_line = self.get_closest_refraction_line(beam.origin)
+                            direction_to_line = closest_line.get_direction_to_point(beam.origin)
+                            beam.refracion_coefficient = closest_line.get_current_refraction_coefficient(direction_to_line)
             beam.coordinates = [beam.origin]
             beam.angle = beam.initial_angle
             beam.relative_intensity = 1
@@ -225,12 +262,12 @@ class LightBeamSceneManager:
                     visual_beam.draw_source()
                 self.visual_beams.append(visual_beam)
 
-    def regroup_scene(self, *, beams: list[tuple[LightBeam, tuple, bool]],
-                 points: list[tuple[Point, tuple]] = None, lines: list[tuple[Line, tuple]] = None,
-                 line_segments: list[tuple[LineSegment, tuple]] = None, polygons: list[tuple[Polygon, tuple]] = None,
-                 refraction_coefficients_management: bool = True) -> None:
+    def regroup_scene(self, *, beams: BeamsTemplateList,
+                 points: PointTemplateList = None, lines: LinesTemplateList = None,
+                 line_segments: LinesSegmentsTemplateList = None, polygons: PolygonsTemplateList = None,
+                 circles: CirclesTemplateList = None, refraction_coefficients_management: bool = True) -> None:
         self.visual_plane.reset_plane()
 
         self._resolve(beams=beams, line_segments=line_segments, lines=lines,
                       refraction_coefficients_management=refraction_coefficients_management, points=points,
-                      polygons=polygons)
+                      polygons=polygons, circles=circles)

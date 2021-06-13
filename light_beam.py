@@ -1,14 +1,12 @@
 from math import sin, cos, radians, asin, degrees
 from typing import Union
 
-from PIL.Image import new
-
-from plane2d import Line, LineSegment, Point
+from plane2d import Cirlce, Line, LineSegment, Point
 from opticallines import ReflectionLine, RefractionLine
 
 class LightBeam:
     def __init__(self, start_coordinates: Point, angle: float,
-                 *,initial_refraction_coefficient: float = 1, max_bounces: int = 100):
+                 *,initial_refraction_coefficient: float = 1, max_bounces: int = 100) -> None:
         """Angle in degrees"""
         self.angle = angle
         while self.angle <= -180 or self.angle > 180:
@@ -24,7 +22,7 @@ class LightBeam:
         self.origin = start_coordinates
         self.initial_angle = angle
 
-    def propogate(self, distance: float = 1):
+    def propogate(self, distance: float = 1) -> Point:
         if self._number_of_bounces > self.max_number_of_bounces: return
 
         previous_x, previous_y = self.coordinates[-1].x, self.coordinates[-1].y
@@ -33,16 +31,17 @@ class LightBeam:
         self.coordinates.append(Point(x, y))
         return Point(x, y)
 
-    def propogate_until(self, lines: list[Union[LineSegment, Line]]):
+    def propogate_until(self, objects: list[Union[LineSegment, Line, Cirlce]]) -> Line:
         if self._number_of_bounces > self.max_number_of_bounces: return None
 
         starting_directions = []
-        for i, line in enumerate(lines):
-            if isinstance(line, Line):
-                starting_directions.append(line.get_direction_to_point(self.coordinates[-1]))
-            elif isinstance(line, LineSegment):
-                direction = line.reconstruct_line().get_direction_to_point(self.coordinates[-1])
-                if (direction == 's' and line.check_intersection(Line(self.coordinates[-1], self.angle))) or direction != 's':
+        for i, object_ in enumerate(objects):
+            if isinstance(object_, Line) or isinstance(object_, Cirlce):
+                starting_directions.append(object_.get_direction_to_point(self.coordinates[-1]))
+            elif isinstance(object_, LineSegment):
+                direction = object_.reconstruct_line().get_direction_to_point(self.coordinates[-1])
+                # Exclude s direction if intersection point doesn't lie on line segment itself
+                if (direction == 's' and object_.check_intersection(Line(self.coordinates[-1], self.angle))) or direction != 's':
                     starting_directions.append(direction)
                 else:
                     starting_directions.append('lou')
@@ -51,25 +50,39 @@ class LightBeam:
         while True:
             #TODO: optimize by propogating at steps == distance to nearest object (or similar, like check in 100 radius) 
             new_point = self.propogate()
-            for i, line in enumerate(lines):
-                if isinstance(line, Line):
-                    if line.get_direction_to_point(new_point) != starting_directions[i]:
+            for i, object_ in enumerate(objects):
+                if isinstance(object_, Line):
+                    if object_.get_direction_to_point(new_point) != starting_directions[i]:
                         self.coordinates.pop()
                         movement_line = Line(self.coordinates[-1], self.angle)
-                        intersection_point = Line.get_intersection_point(line, movement_line)
+                        intersection_point = Line.get_intersection_point(object_, movement_line)
                         if intersection_point is not None:
                             self.coordinates.append(intersection_point)
-                        return line
-                elif isinstance(line, LineSegment):
-                    if line.reconstruct_line().get_direction_to_point(new_point) != starting_directions[i]:
+                        return object_
+                elif isinstance(object_, LineSegment):
+                    if object_.reconstruct_line().get_direction_to_point(new_point) != starting_directions[i]:
                         movement_line = Line(self.coordinates[-2], self.angle)
-                        is_intersect, intersection_point, related_line_hit = line.get_intersection(movement_line)
+                        is_intersect, intersection_point, related_line_hit = object_.get_intersection(movement_line)
                         if is_intersect:
                             self.coordinates.pop()
                             self.coordinates.append(intersection_point)
                             return related_line_hit
+                elif isinstance(object_, Cirlce):
+                    if object_.get_direction_to_point(new_point) != starting_directions[i]:
+                        movement_line = Line(self.coordinates[-2], self.angle)
+                        is_intersect, first_point, second_point = object_.get_intersection(movement_line)
+                        if is_intersect:
+                            self.coordinates.pop()
+                            distance_first = self.coordinates[-1].get_distance_to_point(first_point)
+                            distance_second = self.coordinates[-1].get_distance_to_point(second_point)
+                            if distance_first <= distance_second:
+                                self.coordinates.append(first_point)
+                                return object_.get_tangent_line(first_point)
+                            self.coordinates.append(second_point)
+                            return object_.get_tangent_line(second_point)
 
-    def reflect(self, reflection_line: ReflectionLine):
+
+    def reflect(self, reflection_line: ReflectionLine) -> None:
         if self._number_of_bounces > self.max_number_of_bounces: return
 
         normal_line = Line.perpendicular_line(reflection_line, self.coordinates[-1])
@@ -101,7 +114,7 @@ class LightBeam:
         self.relative_intensity *= reflection_line.reflection_coefficient
         self.propogate(0.01)
 
-    def refract(self, refraction_line: RefractionLine):
+    def refract(self, refraction_line: RefractionLine) -> None:
         if self._number_of_bounces > self.max_number_of_bounces: return
         
         direction = refraction_line.get_direction_to_point(self.coordinates[-2])

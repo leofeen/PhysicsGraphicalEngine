@@ -1,4 +1,4 @@
-from opticalpolygons import RefractionPolygon
+from opticalfigures import RefractionPolygon
 from visual2d import VisualPlane, Color
 from plane2d import Point
 from opticallines import RefractionLine, ReflectionSegment

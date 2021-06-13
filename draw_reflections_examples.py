@@ -1,5 +1,5 @@
 from polygons2d import Triangle
-from opticalpolygons import ReflectionPolygon
+from opticalfigures import ReflectionPolygon, ReflectionCircle
 from visual2d import VisualPlane, Color
 from plane2d import Point
 from opticallines import ReflectionLine, ReflectionSegment
@@ -57,11 +57,15 @@ POLYGONS = [
     (ReflectionPolygon([Point(660, 700), Point(740, 660), Point(750, 760), Point(680, 790)], 1), Color.YELLOW),
 ]
 
+CIRCLES = [
+    (ReflectionCircle(Point(760, 550), 75, 1), Color.AQUA, False),
+]
+
 scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
 scene.draw_picture('Reflections example')
 
 scene.regroup_scene(line_segments=LINE_SEGMENTS, beams=BEAMS)
 scene.draw_picture('Black body model')
 
-scene.regroup_scene(beams=BEAMS2, polygons=POLYGONS)
-scene.draw_picture('Polygonal mirrors')
+scene.regroup_scene(beams=BEAMS2, polygons=POLYGONS, circles=CIRCLES)
+scene.draw_picture('Figure mirrors')
