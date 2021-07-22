@@ -26,11 +26,22 @@ def draw_refractions_example():
         (LightBeam(Point(300, 300), 85), Color.BLUE, True),
     ]
 
-    scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, line_segments=LINE_SEGMENTS)
-    scene.draw_picture('Refractions example')
+    IMAGE_GROUPS = {
+        'Refractions example': {
+            'beams': BEAMS,
+            'lines': LINES,
+            'line_segments': LINE_SEGMENTS,
+        },
+        'Prism example': {
+            'beams': BEAMS,
+            'polygons': POLYGONS,
+            'lines': LINES,
+        },
+    }
 
-    scene.regroup_scene(beams=BEAMS, polygons=POLYGONS, lines=LINES)
-    scene.draw_picture('Prism example')
+    scene = LightBeamSceneManager(plane, image_groups=IMAGE_GROUPS)
+    
+    scene.draw_all_images()
 
 
 if __name__ == '__main__':

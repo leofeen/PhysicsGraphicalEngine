@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Union, overload
 
 from optical.opticalfigures import RefractionCircle, RefractionPolygon
 from visual.visual2d import Color, Drawable, VisaulCircle, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon, ColorType
@@ -14,6 +14,11 @@ LinesTemplateList = list[tuple[Line, ColorType]]
 LinesSegmentsTemplateList = list[tuple[LineSegment, ColorType]]
 PolygonsTemplateList = list[tuple[Polygon, ColorType]]
 CirclesTemplateList = list[tuple[Cirlce, ColorType, bool]]
+
+SceneGroup = dict[str, Union[BeamsTemplateList, PointTemplateList,
+    LinesTemplateList, LinesSegmentsTemplateList,
+    PolygonsTemplateList, CirclesTemplateList
+]]
 
 
 def generate_nonpoint_beam(width: float, height: float, presicion: float,
@@ -125,23 +130,53 @@ class VisualLightBeam(Drawable):
 
 
 class LightBeamSceneManager:
-    def __init__(self, visual_plane: VisualPlane, *, beams: BeamsTemplateList,
-                 points: PointTemplateList = None, lines: LinesTemplateList = None,
-                 line_segments: LinesSegmentsTemplateList = None, polygons: PolygonsTemplateList = None,
-                 circles: CirclesTemplateList = None, refraction_coefficients_management: bool = True) -> None:
-        self.visual_plane: VisualPlane = visual_plane
-        self.image_counter = 0
 
-        self._resolve(beams=beams, line_segments=line_segments, lines=lines,
-                      refraction_coefficients_management=refraction_coefficients_management, points=points,
-                      polygons=polygons, circles=circles)
+    @overload
+    def __init__(self, visual_plane: VisualPlane, *, beams: BeamsTemplateList,
+                points: Optional[PointTemplateList], lines: Optional[LinesTemplateList],
+                line_segments: Optional[LinesSegmentsTemplateList], polygons: Optional[PolygonsTemplateList],
+                circles: Optional[CirclesTemplateList], refraction_coefficients_management: bool = True) -> None: ...
+
+    @overload
+    def __init__(self, visual_plane: VisualPlane, *, 
+                image_groups: dict[str, SceneGroup], refraction_coefficients_management: bool = True) -> None: ...
+
+    def __init__(self, visual_plane, *, beams = None,
+                 points = None, lines = None,
+                 line_segments = None, polygons = None,
+                 circles = None, refraction_coefficients_management = True,
+                 image_groups = None):
+        if (beams is None and image_groups is None): 
+            raise ValueError('LightBeamSceneManager expect to either beams or images keyword argument provided')
+
+        self.visual_plane = visual_plane
+        self.image_counter = 0    
+        self.using_groups = bool(image_groups is not None)
+
+        self.image_groups = image_groups
+        self.refraction_coefficients_management = refraction_coefficients_management
+
+        if image_groups is None:
+            self._resolve(beams=beams, line_segments=line_segments, lines=lines,
+                        refraction_coefficients_management=refraction_coefficients_management, points=points,
+                        polygons=polygons, circles=circles)
             
-    def draw_picture(self, image_name: str = '') -> None:
+    def draw_image(self, image_name: str = '') -> None:
         self.image_counter += 1
         if image_name:
             print(f'Started processing "{image_name}"')
-        else:
+        elif not self.using_groups:
             print(f'Started processing the scene №{self.image_counter}')
+        else:
+            raise ValueError('Image name must be provided, if you specified image groups')
+
+        if self.using_groups:
+            scene_group: dict = self.image_groups[str(image_name)]
+            self.regroup_scene(beams=scene_group['beams'], points=scene_group.get('points', None),
+                lines=scene_group.get('lines', None), line_segments=scene_group.get('line_segments', None),
+                polygons=scene_group.get('polygons', None), circles=scene_group.get('circles', None),
+                refraction_coefficients_management=self.refraction_coefficients_management)
+
         for visual_beam in self.visual_beams:
             visual_beam.fully_propogate()
 
@@ -169,6 +204,13 @@ class LightBeamSceneManager:
             print(f'Image "{image_name}" created')
         else:
             print(f'Image №{self.image_counter} created')
+
+    def draw_all_images(self) -> None:
+        if self.using_groups:
+            for image_name in self.image_groups:
+                self.draw_image(image_name)
+        else:
+            self.draw_image()
 
     def get_closest_refraction_line(self, point: Point) -> RefractionLine:
         closest = None

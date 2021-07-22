@@ -63,14 +63,26 @@ def draw_reflections_examples():
         (ReflectionCircle(Point(760, 550), 75, 1), Color.AQUA, False),
     ]
 
-    scene = LightBeamSceneManager(plane, lines=LINES, beams=BEAMS, points=POINTS)
-    scene.draw_picture('Reflections example')
+    IMAGE_GROUPS = {
+        'Reflections example': {
+            'beams': BEAMS,
+            'lines': LINES,
+            'points': POINTS,
+        },
+        'Black body model': {
+            'beams': BEAMS,
+            'line_segments': LINE_SEGMENTS,
+        },
+        'Figure mirrors': {
+            'beams': BEAMS2,
+            'polygons': POLYGONS,
+            'circles': CIRCLES,
+        },
+    }
 
-    scene.regroup_scene(line_segments=LINE_SEGMENTS, beams=BEAMS)
-    scene.draw_picture('Black body model')
+    scene = LightBeamSceneManager(plane, image_groups=IMAGE_GROUPS)
 
-    scene.regroup_scene(beams=BEAMS2, polygons=POLYGONS, circles=CIRCLES)
-    scene.draw_picture('Figure mirrors')
+    scene.draw_all_images()
 
 
 if __name__ == '__main__':
