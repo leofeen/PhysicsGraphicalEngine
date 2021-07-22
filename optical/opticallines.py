@@ -1,11 +1,11 @@
-from plane2d import Line, Point, LineSegment
+from plane.plane2d import Line, Point, LineSegment
 
 
 class LightTransparentMixin:
     def __init__(self, transparensy: float = 1) -> None:
         if not (0 <= transparensy <= 1):
             raise ValueError(f'Transparensy must be in [0; 1], but {transparensy} was given')
-        self.transparensy = transparensy
+        self.get_transparensy = lambda: transparensy
 
 
 # TODO: rewrite all statics to return ReflectionLine / RefractionLine

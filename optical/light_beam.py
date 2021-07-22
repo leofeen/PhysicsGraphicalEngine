@@ -1,8 +1,8 @@
 from math import sin, cos, radians, asin, degrees
 from typing import Union
 
-from plane2d import Cirlce, Line, LineSegment, Point
-from opticallines import ReflectionLine, RefractionLine
+from plane.plane2d import Cirlce, Line, LineSegment, Point
+from optical.opticallines import ReflectionLine, RefractionLine
 
 class LightBeam:
     def __init__(self, start_coordinates: Point, angle: float,

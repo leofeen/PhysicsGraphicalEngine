@@ -1,5 +1,5 @@
-from plane2d import Cirlce, Polygon, Point
-from opticallines import LightTransparentMixin, ReflectionLine, ReflectionSegment, RefractionLine, RefractionSegment
+from plane.plane2d import Cirlce, Polygon, Point
+from optical.opticallines import LightTransparentMixin, ReflectionLine, ReflectionSegment, RefractionLine, RefractionSegment
 
 
 class ReflectionPolygon(Polygon):

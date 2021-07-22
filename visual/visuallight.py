@@ -1,10 +1,11 @@
 import math
+from typing import Optional
 
-from opticalfigures import RefractionCircle, RefractionPolygon
-from visual2d import Color, IByPointDraw, VisaulCircle, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon, ColorType
-from light_beam import LightBeam
-from plane2d import Cirlce, LineSegment, Point, Line, Polygon, Vector2d
-from opticallines import ReflectionLine, RefractionLine
+from optical.opticalfigures import RefractionCircle, RefractionPolygon
+from visual.visual2d import Color, Drawable, VisaulCircle, VisualLineSegment, VisualPlane, VisualLine, VisualPoint, VisualPolygon, ColorType
+from optical.light_beam import LightBeam
+from plane.plane2d import Cirlce, LineSegment, Point, Line, Polygon, Vector2d
+from optical.opticallines import ReflectionLine, RefractionLine
 
 
 BeamsTemplateList = list[tuple[LightBeam, ColorType, bool]]
@@ -33,17 +34,19 @@ def generate_nonpoint_beam(width: float, height: float, presicion: float,
     return beams
 
 
-class VisualLightBeam(IByPointDraw):
+class VisualLightBeam(Drawable):
     def __init__(self, light_beam: LightBeam, visual_plane: VisualPlane, color: ColorType, diffusion_treshold: int = 5) -> None:
-        super().__init__(light_beam)
+        super().__init__()
         self.beam = light_beam
         self.visual_plane = visual_plane
         self.color = color
         self.original_color = color
-        self.type_ = VisualLightBeam.type_
         self.visual_plane.bind_object(self)
         self.diffusion_treshold = diffusion_treshold
         self.transparensy = 0.5
+
+    def get_transparensy(self) -> float:
+        return self.transparensy
 
     def draw_source(self) -> None:
         source_center = Point(round(self.beam.coordinates[0].x), round(self.beam.coordinates[0].y))
@@ -70,7 +73,7 @@ class VisualLightBeam(IByPointDraw):
         background_color = self.visual_plane.background_color
         self.color = Color.blend_colors(self.original_color, background_color, 1-new_intensity)
 
-    def update_draw_coordinates(self) -> None:
+    def compute_draw_coordinates(self) -> None:
         for point in self.beam.coordinates:
             x, y = point.x, point.y
             rounded_x = round(x)
@@ -78,12 +81,20 @@ class VisualLightBeam(IByPointDraw):
             if self.draw_coordinates.get(Point(rounded_x, rounded_y), None) is None:
                 self.draw_coordinates[Point(rounded_x, rounded_y)] = self.color
 
+    def get_color_on_point(self, point: Point, precision: Optional[float] = None) -> ColorType:
+        if not self.draw_coordinates:
+            self.compute_draw_coordinates()
+        if point in self.draw_coordinates.keys():
+            return self.draw_coordinates[point]
+        else:
+            return Color.NONE
+
     def fully_propogate(self) -> None:
         while True:
             if not self.check_diffusion(): break
 
             object_hit = self.beam.propogate_until(self.visual_plane.plane.borders_as_list() + self.visual_plane.plane.objects_on_plane)
-            self.update_draw_coordinates()
+            self.compute_draw_coordinates()
             if isinstance(object_hit, RefractionLine):
                 self.beam.refract(object_hit)
             elif isinstance(object_hit, ReflectionLine):
@@ -106,11 +117,11 @@ class VisualLightBeam(IByPointDraw):
             value_on_point = self.visual_plane.get_value_on_point(point)
             if value_on_point != 0 and value_on_point is not None:
                 object_passed = self.visual_plane.get_binded_object(value_on_point)
-                passed_color = object_passed.get_color_on_point((point.x, point.y))
+                passed_color = object_passed.get_color_on_point(point)
                 if passed_color == Color.NONE:
                     continue
-                transparensy = object_passed.transparensy
-                self.draw_coordinates[point] = Color.blend_colors(self.get_color_on_point((point.x, point.y)), passed_color, 1-transparensy)
+                transparensy = object_passed.get_transparensy()
+                self.draw_coordinates[point] = Color.blend_colors(self.get_color_on_point(point), passed_color, 1-transparensy)
 
 
 class LightBeamSceneManager:

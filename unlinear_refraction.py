@@ -1,10 +1,10 @@
 import math
 
-from visual2d import VisualPlane, Color
-from plane2d import Point
-from opticallines import RefractionLine
-from light_beam import LightBeam
-from visuallight import LightBeamSceneManager, generate_nonpoint_beam
+from visual.visual2d import VisualPlane, Color
+from plane.plane2d import Point
+from optical.opticallines import RefractionLine
+from optical.light_beam import LightBeam
+from visual.visuallight import LightBeamSceneManager, generate_nonpoint_beam
 
 
 WIDTH_OF_BEAM = 16

@@ -4,8 +4,8 @@ from math import radians, degrees, sqrt, tan, atan, fabs, cos, sin, inf
 import numpy as np
 
 
-# same (collision); left-or-up; right-or-up; right-or-down; left-or-down; outside; inside
 DirectionType = Literal['s', 'lou', 'rou', 'rod', 'lod', 'out', 'in']
+# same (collision); left-or-up; right-or-up; right-or-down; left-or-down; outside; inside
 
 
 class Point:
@@ -16,7 +16,7 @@ class Point:
     def __str__(self) -> str:
         return f'({self.x}; {self.y})'
 
-    def __eq__(self, other: Union[Any, 'Point', 'Vector2d']) -> bool:
+    def __eq__(self, other: Union['Point', 'Vector2d']) -> bool:
         if not isinstance(other, Point) and not isinstance(other, Vector2d):
             return NotImplemented
         return (self.x == other.x) and (self.y == other.y)
@@ -42,6 +42,9 @@ class Point:
 
     def get_distance_to_point(self, point: 'Point') -> float:
         return sqrt((self.x - point.x)**2 + (self.y - point.y)**2)
+
+    def as_tuple(self):
+        return (self.x, self.y)
 
 
 #TODO: support Vector2d instead of Point where needed

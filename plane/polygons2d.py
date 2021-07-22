@@ -1,6 +1,8 @@
 from math import acos, degrees, radians, cos, sin, tan
 
-from plane2d import Polygon, Point, Vector2d
+from plane.plane2d import Polygon, Point, Vector2d
+
+# TODO: implement arcs
 
 
 class Triangle(Polygon):
